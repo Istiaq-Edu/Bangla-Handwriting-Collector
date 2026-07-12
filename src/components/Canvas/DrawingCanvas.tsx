@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ArrowRight, Check } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { usePointerDrawing } from '../../hooks/usePointerDrawing'
 import { renderStrokes, setupCanvas, canvasToPng } from '../../utils/canvasUtils'
@@ -58,8 +58,7 @@ export default function DrawingCanvas({
   const [showSaved, setShowSaved] = useState(false)
   const [isEmpty, setIsEmpty] = useState(true)
   const [currentStrokeActive, setCurrentStrokeActive] = useState(false)
-  const [showGrid, setShowGrid] = useState(false)
-  const [showGuide, setShowGuide] = useState(false)
+  const [showGrid, setShowGrid] = useState(true)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
 
   const render = useCallback(() => {
@@ -111,19 +110,7 @@ export default function DrawingCanvas({
       }
       ctx.restore()
     }
-
-    if (showGuide && targetCharacter) {
-      ctx.save()
-      ctx.globalAlpha = 0.07
-      ctx.fillStyle = '#000000'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      const fontSize = Math.min(w, h) * 0.8
-      ctx.font = `bold ${fontSize}px sans-serif`
-      ctx.fillText(targetCharacter, w / 2, h / 2 + fontSize * 0.05)
-      ctx.restore()
-    }
-  }, [showGrid, showGuide, targetCharacter])
+  }, [showGrid])
 
   const penThicknessRef = useRef(penThickness)
   const isErasingRef = useRef(isErasing)
@@ -375,7 +362,7 @@ export default function DrawingCanvas({
         {/* Mobile toolbar (top, scrollable) */}
         <Toolbar
           isErasing={isErasing}
-          onToggleEraser={() => setIsErasing(!isErasing)}
+          onToggleEraser={() => setIsErasing((v) => !v)}
           onUndo={handleUndo}
           onRedo={handleRedo}
           onClear={handleClear}
@@ -389,8 +376,6 @@ export default function DrawingCanvas({
           canUndo={strokeCount > 0}
           showGrid={showGrid}
           onToggleGrid={() => setShowGrid((v) => !v)}
-          showGuide={showGuide}
-          onToggleGuide={() => setShowGuide((v) => !v)}
         />
 
         {/* Canvas */}
@@ -460,30 +445,30 @@ export default function DrawingCanvas({
         </div>
       </div>
 
-      {/* Navigation bar — full width below canvas + toolbar */}
+      {/* Navigation bar */}
       <div className="flex gap-2 px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
         <motion.button
           onClick={handlePrevClick}
-          className="flex flex-1 items-center justify-center whitespace-nowrap gap-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
+          className="flex flex-1 items-center justify-center whitespace-nowrap gap-1 rounded-xl bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.95 }}
         >
           <ChevronLeft size={18} strokeWidth={2.5} />
           Prev
         </motion.button>
         <motion.button
           onClick={handleSkipClick}
-          className="flex flex-1 items-center justify-center whitespace-nowrap gap-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
+          className="flex flex-1 items-center justify-center whitespace-nowrap gap-1 rounded-xl bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.95 }}
         >
           Skip
-          <ChevronRight size={18} strokeWidth={2.5} />
+          <ArrowRight size={18} strokeWidth={2.5} />
         </motion.button>
         <motion.button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="flex flex-[2] items-center justify-center whitespace-nowrap gap-1.5 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-700"
+          className="flex flex-[2] items-center justify-center whitespace-nowrap gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-all hover:bg-blue-700 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-gray-200 disabled:shadow-none dark:disabled:bg-gray-700"
           whileHover={{ scale: canSubmit ? 1.02 : 1 }}
           whileTap={{ scale: canSubmit ? 0.96 : 1 }}
         >
