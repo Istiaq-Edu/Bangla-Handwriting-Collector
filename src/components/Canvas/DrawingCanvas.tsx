@@ -19,6 +19,7 @@ interface DrawingCanvasProps {
     pngBlob: Blob
     svgString: string
     penThickness: number
+    penColor: string
   }) => void
   onSkip: () => void
   onPrevious: () => void
@@ -46,6 +47,8 @@ export default function DrawingCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
   const penThickness = useStore((s) => s.penThickness)
   const setPenThickness = useStore((s) => s.setPenThickness)
+  const penColor = useStore((s) => s.penColor)
+  const setPenColor = useStore((s) => s.setPenColor)
   const [isErasing, setIsErasing] = useState(false)
   const [canSubmit, setCanSubmit] = useState(false)
   const [strokeCount, setStrokeCount] = useState(0)
@@ -55,6 +58,7 @@ export default function DrawingCanvas({
   const [currentStrokeActive, setCurrentStrokeActive] = useState(false)
   const [showGrid, setShowGrid] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
 
   // Render callback — draws strokes on canvas. Does NOT call setState.
   const render = useCallback(() => {
@@ -63,7 +67,7 @@ export default function DrawingCanvas({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     const state = stateRef.current
-    renderStrokes(ctx, state.strokes, state.currentStroke, penThicknessRef.current, isErasingRef.current)
+    renderStrokes(ctx, state.strokes, state.currentStroke, penThicknessRef.current, isErasingRef.current, penColorRef.current)
   }, [])
 
   const drawing = usePointerDrawing(render, 'mouse', isErasing)
@@ -125,10 +129,12 @@ export default function DrawingCanvas({
   // Keep refs in sync for use inside render and event handlers
   const penThicknessRef = useRef(penThickness)
   const isErasingRef = useRef(isErasing)
+  const penColorRef = useRef(penColor)
   const stateRef = drawing.stateRef
   const drawingRef = useRef(drawing)
   penThicknessRef.current = penThickness
   isErasingRef.current = isErasing
+  penColorRef.current = penColor
   drawingRef.current = drawing
 
   // Sync stroke/redo counts to state (for button enable/disable)
@@ -258,6 +264,41 @@ export default function DrawingCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        drawingRef.current.handleUndo()
+        syncCounts()
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+        e.preventDefault()
+        drawingRef.current.handleRedo()
+        syncCounts()
+      } else if (e.key === 'Escape' && isErasingRef.current) {
+        setIsErasing(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncCounts])
+
+  // Brush cursor preview — track pointer position over canvas
+  const handlePointerMoveCursor = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+  }, [])
+
+  const handlePointerLeaveCursor = useCallback(() => {
+    setCursorPos(null)
+  }, [])
+
   // Undo/Redo/Clear handlers that sync counts after
   const handleUndo = useCallback(() => {
     drawingRef.current.handleUndo()
@@ -310,6 +351,7 @@ export default function DrawingCanvas({
       pngBlob,
       svgString,
       penThickness,
+      penColor,
     })
 
     setShowSaved(true)
@@ -364,12 +406,28 @@ export default function DrawingCanvas({
             <canvas
               ref={canvasRef}
               className="h-full w-full touch-none rounded-xl border-2 border-gray-200 bg-white shadow-md dark:border-gray-700"
+              onPointerMove={handlePointerMoveCursor}
+              onPointerLeave={handlePointerLeaveCursor}
             />
             <canvas
               ref={overlayRef}
               className="pointer-events-none absolute inset-0 h-full w-full"
               aria-hidden="true"
             />
+
+            {/* Brush cursor preview */}
+            {cursorPos && !isErasing && (
+              <div
+                className="pointer-events-none absolute rounded-full border border-gray-400 opacity-50"
+                style={{
+                  left: cursorPos.x - penThickness / 2,
+                  top: cursorPos.y - penThickness / 2,
+                  width: penThickness,
+                  height: penThickness,
+                  backgroundColor: penColor + '30',
+                }}
+              />
+            )}
 
             {/* Empty state hint */}
             {isEmpty && !currentStrokeActive && (
@@ -411,6 +469,8 @@ export default function DrawingCanvas({
           onClear={handleClear}
           penThickness={penThickness}
           onPenThicknessChange={setPenThickness}
+          penColor={penColor}
+          onPenColorChange={setPenColor}
           canRedo={redoCount > 0}
           canUndo={strokeCount > 0}
           showGrid={showGrid}

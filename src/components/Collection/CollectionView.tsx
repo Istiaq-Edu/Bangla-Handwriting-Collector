@@ -91,6 +91,7 @@ export default function CollectionView() {
       pngBlob: Blob
       svgString: string
       penThickness: number
+      penColor: string
     }) => {
       const char = currentCharRef.current
       try {
@@ -105,6 +106,7 @@ export default function CollectionView() {
             canvasWidth: data.canvasWidth,
             canvasHeight: data.canvasHeight,
             penThickness: data.penThickness,
+            penColor: data.penColor,
             pngBlob: data.pngBlob,
             svgString: data.svgString,
             createdAt: Date.now(),
@@ -126,6 +128,7 @@ export default function CollectionView() {
             canvasWidth: data.canvasWidth,
             canvasHeight: data.canvasHeight,
             penThickness: data.penThickness,
+            penColor: data.penColor,
             pngBlob: data.pngBlob,
             svgString: data.svgString,
             createdAt: Date.now(),

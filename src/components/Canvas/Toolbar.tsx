@@ -3,12 +3,14 @@ import { Undo2, Redo2, Eraser, Trash2, Grid3x3, Eye } from 'lucide-react'
 
 interface ToolbarProps {
   penThickness: number
+  penColor: string
   isErasing: boolean
   onToggleEraser: () => void
   onUndo: () => void
   onRedo: () => void
   onClear: () => void
   onPenThicknessChange: (thickness: number) => void
+  onPenColorChange: (color: string) => void
   canUndo: boolean
   canRedo: boolean
   showGrid: boolean
@@ -16,6 +18,13 @@ interface ToolbarProps {
   showGuide: boolean
   onToggleGuide: () => void
 }
+
+const COLORS = [
+  { value: '#000000', label: 'Black' },
+  { value: '#2563eb', label: 'Blue' },
+  { value: '#dc2626', label: 'Red' },
+  { value: '#16a34a', label: 'Green' },
+]
 
 const btnClass = (active: boolean) =>
   active
@@ -51,6 +60,35 @@ function ToolButton({
   )
 }
 
+function ColorSwatch({ color, active, onClick, label }: { color: string; active: boolean; onClick: () => void; label: string }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      className={`h-6 w-6 rounded-full border-2 ${active ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-800' : 'border-gray-300 dark:border-gray-600'}`}
+      style={{ backgroundColor: color }}
+      aria-label={label}
+      whileHover={{ scale: 1.2 }}
+      whileTap={{ scale: 0.85 }}
+    />
+  )
+}
+
+function ColorPicker({ penColor, onPenColorChange, layout }: { penColor: string; onPenColorChange: (c: string) => void; layout: 'vertical' | 'horizontal' }) {
+  return (
+    <div className={layout === 'vertical' ? 'flex flex-col items-center gap-1.5' : 'flex items-center gap-1.5'}>
+      {COLORS.map((c) => (
+        <ColorSwatch
+          key={c.value}
+          color={c.value}
+          active={penColor === c.value}
+          onClick={() => onPenColorChange(c.value)}
+          label={c.label}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function Toolbar({
   isErasing,
   onToggleEraser,
@@ -58,6 +96,8 @@ export default function Toolbar({
   onRedo,
   onClear,
   penThickness,
+  penColor,
+  onPenColorChange,
   onPenThicknessChange,
   canUndo,
   canRedo,
@@ -100,10 +140,16 @@ export default function Toolbar({
 
         <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
 
+        {/* Color picker */}
+        <ColorPicker penColor={penColor} onPenColorChange={onPenColorChange} layout="vertical" />
+
+        <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+
         {/* Thickness slider - vertical */}
         <div className="flex flex-col items-center gap-1">
           <motion.div
-            className="rounded-full bg-black dark:bg-white"
+            className="rounded-full"
+            style={{ backgroundColor: penColor }}
             animate={{ width: Math.max(4, penThickness), height: Math.max(4, penThickness) }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
           />
@@ -149,9 +195,13 @@ export default function Toolbar({
           <Eye size={18} strokeWidth={2} />
         </ToolButton>
 
+        {/* Color swatches */}
+        <ColorPicker penColor={penColor} onPenColorChange={onPenColorChange} layout="horizontal" />
+
         <div className="ml-1 flex flex-1 items-center gap-2">
           <motion.div
-            className="shrink-0 rounded-full bg-black dark:bg-white"
+            className="shrink-0 rounded-full"
+            style={{ backgroundColor: penColor }}
             animate={{ width: Math.max(4, penThickness), height: Math.max(4, penThickness) }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
           />

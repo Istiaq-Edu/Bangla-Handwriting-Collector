@@ -30,23 +30,25 @@ export function renderStrokes(
   currentStroke: Stroke | null,
   penThickness: number,
   isErasing: boolean,
+  penColor?: string,
 ): void {
   const canvas = ctx.canvas
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-  ctx.strokeStyle = '#000000'
+  ctx.strokeStyle = penColor ?? '#000000'
+  ctx.fillStyle = penColor ?? '#000000'
   ctx.lineWidth = penThickness
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
 
   for (const stroke of strokes) {
-    drawStroke(ctx, stroke, penThickness)
+    drawStroke(ctx, stroke, penThickness, penColor)
   }
 
   if (currentStroke && !isErasing) {
-    drawStroke(ctx, currentStroke, penThickness)
+    drawStroke(ctx, currentStroke, penThickness, penColor)
   }
 }
 
@@ -54,6 +56,7 @@ function drawStroke(
   ctx: CanvasRenderingContext2D,
   stroke: Stroke,
   baseThickness: number,
+  penColor?: string,
 ): void {
   const pts = stroke.points
   if (pts.length === 0) return
@@ -61,6 +64,8 @@ function drawStroke(
   const dpr = window.devicePixelRatio || 1
   const thickness = baseThickness * dpr
   ctx.lineWidth = thickness
+  ctx.strokeStyle = penColor ?? '#000000'
+  ctx.fillStyle = penColor ?? '#000000'
 
   if (pts.length === 1) {
     const p = pts[0]
