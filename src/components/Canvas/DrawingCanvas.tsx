@@ -264,8 +264,7 @@ export default function DrawingCanvas({
       canvas.removeEventListener('pointercancel', onPointerUp)
       canvas.removeEventListener('pointerleave', onPointerLeave)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [isFullscreen, syncCounts, vibrate])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
