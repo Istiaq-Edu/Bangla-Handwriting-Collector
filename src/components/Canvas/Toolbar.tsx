@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion'
-import { Undo2, Redo2, Eraser, Trash2, Grid3x3, Eye } from 'lucide-react'
+import {
+  Undo2, Redo2, Eraser, Trash2, Grid3x3, Eye, RotateCw,
+} from 'lucide-react'
 
 interface ToolbarProps {
   penThickness: number
@@ -9,6 +11,8 @@ interface ToolbarProps {
   onUndo: () => void
   onRedo: () => void
   onClear: () => void
+  onRotate: () => void
+  canRotate: boolean
   onPenThicknessChange: (thickness: number) => void
   onPenColorChange: (color: string) => void
   canUndo: boolean
@@ -45,12 +49,13 @@ function ToolButton({
   active?: boolean
   label: string
   children: React.ReactNode
+  iconSize?: number
 }) {
   return (
     <motion.button
       onClick={onClick}
       disabled={disabled}
-      className={`shrink-0 rounded-lg border p-3 transition-colors sm:p-2.5 ${btnClass(active ?? false)}`}
+      className={`shrink-0 rounded-lg border p-2.5 transition-colors ${btnClass(active ?? false)}`}
       aria-label={label}
       whileHover={{ scale: disabled ? 1 : 1.05 }}
       whileTap={{ scale: disabled ? 1 : 0.9 }}
@@ -64,7 +69,7 @@ function ColorSwatch({ color, active, onClick, label }: { color: string; active:
   return (
     <motion.button
       onClick={onClick}
-      className={`h-8 w-8 shrink-0 rounded-full border-2 ${active ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-800' : 'border-gray-300 dark:border-gray-600'}`}
+      className={`h-7 w-7 shrink-0 rounded-full border-2 ${active ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-800' : 'border-gray-300 dark:border-gray-600'}`}
       style={{ backgroundColor: color }}
       aria-label={label}
       whileHover={{ scale: 1.2 }}
@@ -73,19 +78,9 @@ function ColorSwatch({ color, active, onClick, label }: { color: string; active:
   )
 }
 
-function ColorPicker({ penColor, onPenColorChange, layout }: { penColor: string; onPenColorChange: (c: string) => void; layout: 'vertical' | 'horizontal' }) {
+function Divider({ vertical }: { vertical?: boolean }) {
   return (
-    <div className={layout === 'vertical' ? 'flex flex-col items-center gap-1.5' : 'flex items-center gap-1.5'}>
-      {COLORS.map((c) => (
-        <ColorSwatch
-          key={c.value}
-          color={c.value}
-          active={penColor === c.value}
-          onClick={() => onPenColorChange(c.value)}
-          label={c.label}
-        />
-      ))}
-    </div>
+    <div className={vertical ? 'mx-0.5 h-8 w-px bg-gray-200 dark:bg-gray-700' : 'my-1 h-px bg-gray-200 dark:bg-gray-700'} />
   )
 }
 
@@ -95,6 +90,8 @@ export default function Toolbar({
   onUndo,
   onRedo,
   onClear,
+  onRotate,
+  canRotate,
   penThickness,
   penColor,
   onPenColorChange,
@@ -108,44 +105,57 @@ export default function Toolbar({
 }: ToolbarProps) {
   return (
     <>
-      {/* Desktop/tablet: vertical sidebar */}
-      <div className="hidden flex-col gap-2 border-r border-gray-200 p-2 dark:border-gray-700 sm:flex">
+      {/* ═══ Desktop/tablet: vertical sidebar ═══ */}
+      <div className="hidden w-14 flex-col items-center gap-2 border-r border-gray-200 p-2 dark:border-gray-700 sm:flex">
+        {/* History group */}
         <ToolButton onClick={onUndo} disabled={!canUndo} label="Undo">
           <Undo2 size={20} strokeWidth={2} />
         </ToolButton>
-
         <ToolButton onClick={onRedo} disabled={!canRedo} label="Redo">
           <Redo2 size={20} strokeWidth={2} />
         </ToolButton>
 
-        <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+        <Divider />
 
+        {/* Tools group */}
         <ToolButton onClick={onToggleEraser} active={isErasing} label="Eraser">
           <Eraser size={20} strokeWidth={2} />
         </ToolButton>
-
         <ToolButton onClick={onClear} label="Clear all">
           <Trash2 size={20} strokeWidth={2} />
         </ToolButton>
-
-        <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
-
-        <ToolButton onClick={onToggleGrid} active={showGrid} label="Toggle grid overlay">
-          <Grid3x3 size={20} strokeWidth={2} />
+        <ToolButton onClick={onRotate} disabled={!canRotate} label="Rotate 90°">
+          <RotateCw size={20} strokeWidth={2} />
         </ToolButton>
 
-        <ToolButton onClick={onToggleGuide} active={showGuide} label="Toggle tracing guide">
+        <Divider />
+
+        {/* View group */}
+        <ToolButton onClick={onToggleGrid} active={showGrid} label="Toggle grid">
+          <Grid3x3 size={20} strokeWidth={2} />
+        </ToolButton>
+        <ToolButton onClick={onToggleGuide} active={showGuide} label="Toggle guide">
           <Eye size={20} strokeWidth={2} />
         </ToolButton>
 
-        <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+        <Divider />
 
-        {/* Color picker */}
-        <ColorPicker penColor={penColor} onPenColorChange={onPenColorChange} layout="vertical" />
+        {/* Color swatches */}
+        <div className="flex flex-col items-center gap-1.5">
+          {COLORS.map((c) => (
+            <ColorSwatch
+              key={c.value}
+              color={c.value}
+              active={penColor === c.value}
+              onClick={() => onPenColorChange(c.value)}
+              label={c.label}
+            />
+          ))}
+        </div>
 
-        <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+        <Divider />
 
-        {/* Thickness slider - vertical */}
+        {/* Thickness slider */}
         <div className="flex flex-col items-center gap-1">
           <motion.div
             className="rounded-full"
@@ -159,7 +169,7 @@ export default function Toolbar({
             max="20"
             value={penThickness}
             onChange={(e) => onPenThicknessChange(Number(e.target.value))}
-            className="h-24 w-1.5 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
+            className="h-20 w-1.5 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
             style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
             aria-label="Pen thickness"
           />
@@ -169,36 +179,58 @@ export default function Toolbar({
         </div>
       </div>
 
-      {/* Mobile: horizontal bar */}
-      <div className="order-first flex items-center gap-2 overflow-x-auto overscroll-contain border-b border-gray-200 px-3 py-2 dark:border-gray-700 sm:hidden">
-        <ToolButton onClick={onUndo} disabled={!canUndo} label="Undo">
+      {/* ═══ Mobile: single horizontal control bar ═══ */}
+      <div className="order-first flex items-center gap-1.5 overflow-x-auto overscroll-contain border-b border-gray-200 px-2 py-1.5 dark:border-gray-700 sm:hidden">
+        {/* History group */}
+        <ToolButton onClick={onUndo} disabled={!canUndo} label="Undo" iconSize={18}>
           <Undo2 size={18} strokeWidth={2} />
         </ToolButton>
-
-        <ToolButton onClick={onRedo} disabled={!canRedo} label="Redo">
+        <ToolButton onClick={onRedo} disabled={!canRedo} label="Redo" iconSize={18}>
           <Redo2 size={18} strokeWidth={2} />
         </ToolButton>
 
-        <ToolButton onClick={onClear} label="Clear all">
-          <Trash2 size={18} strokeWidth={2} />
-        </ToolButton>
+        <Divider vertical />
 
-        <ToolButton onClick={onToggleEraser} active={isErasing} label="Eraser">
+        {/* Tools group */}
+        <ToolButton onClick={onToggleEraser} active={isErasing} label="Eraser" iconSize={18}>
           <Eraser size={18} strokeWidth={2} />
         </ToolButton>
-
-        <ToolButton onClick={onToggleGrid} active={showGrid} label="Toggle grid overlay">
-          <Grid3x3 size={18} strokeWidth={2} />
+        <ToolButton onClick={onClear} label="Clear" iconSize={18}>
+          <Trash2 size={18} strokeWidth={2} />
+        </ToolButton>
+        <ToolButton onClick={onRotate} disabled={!canRotate} label="Rotate" iconSize={18}>
+          <RotateCw size={18} strokeWidth={2} />
         </ToolButton>
 
-        <ToolButton onClick={onToggleGuide} active={showGuide} label="Toggle tracing guide">
+        <Divider vertical />
+
+        {/* View group */}
+        <ToolButton onClick={onToggleGrid} active={showGrid} label="Grid" iconSize={18}>
+          <Grid3x3 size={18} strokeWidth={2} />
+        </ToolButton>
+        <ToolButton onClick={onToggleGuide} active={showGuide} label="Guide" iconSize={18}>
           <Eye size={18} strokeWidth={2} />
         </ToolButton>
 
-        {/* Color swatches */}
-        <ColorPicker penColor={penColor} onPenColorChange={onPenColorChange} layout="horizontal" />
+        <Divider vertical />
 
-        <div className="ml-1 flex flex-1 items-center gap-2">
+        {/* Colors */}
+        <div className="flex items-center gap-1">
+          {COLORS.map((c) => (
+            <ColorSwatch
+              key={c.value}
+              color={c.value}
+              active={penColor === c.value}
+              onClick={() => onPenColorChange(c.value)}
+              label={c.label}
+            />
+          ))}
+        </div>
+
+        <Divider vertical />
+
+        {/* Thickness */}
+        <div className="flex items-center gap-1.5">
           <motion.div
             className="shrink-0 rounded-full"
             style={{ backgroundColor: penColor }}
@@ -211,11 +243,11 @@ export default function Toolbar({
             max="20"
             value={penThickness}
             onChange={(e) => onPenThicknessChange(Number(e.target.value))}
-            className="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
+            className="h-2 w-20 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
             aria-label="Pen thickness"
           />
-          <span className="w-7 shrink-0 text-right text-xs text-gray-500 dark:text-gray-400">
-            {penThickness}px
+          <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">
+            {penThickness}
           </span>
         </div>
       </div>

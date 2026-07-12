@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Check, RotateCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { usePointerDrawing } from '../../hooks/usePointerDrawing'
 import { renderStrokes, setupCanvas, canvasToPng } from '../../utils/canvasUtils'
@@ -37,11 +37,13 @@ export default function DrawingCanvas({
   onPrevious,
   targetCharacter,
   targetTransliteration,
-  currentIdx,
-  totalChars,
+  currentIdx: _currentIdx,
+  totalChars: _totalChars,
   initialStrokes,
   submitLabel,
 }: DrawingCanvasProps) {
+  void _currentIdx
+  void _totalChars
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -60,7 +62,6 @@ export default function DrawingCanvas({
   const [showGuide, setShowGuide] = useState(false)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
 
-  // Render callback — draws strokes on canvas. Does NOT call setState.
   const render = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -72,7 +73,6 @@ export default function DrawingCanvas({
 
   const drawing = usePointerDrawing(render, 'mouse', isErasing)
 
-  // Draw grid + tracing guide on the overlay canvas (never captured in PNG export)
   const renderOverlay = useCallback(() => {
     const overlay = overlayRef.current
     const main = canvasRef.current
@@ -80,7 +80,6 @@ export default function DrawingCanvas({
     const ctx = overlay.getContext('2d')
     if (!ctx) return
 
-    // Match overlay size to main canvas (CSS pixels)
     const rect = main.getBoundingClientRect()
     overlay.width = rect.width
     overlay.height = rect.height
@@ -126,7 +125,6 @@ export default function DrawingCanvas({
     }
   }, [showGrid, showGuide, targetCharacter])
 
-  // Keep refs in sync for use inside render and event handlers
   const penThicknessRef = useRef(penThickness)
   const isErasingRef = useRef(isErasing)
   const penColorRef = useRef(penColor)
@@ -137,8 +135,6 @@ export default function DrawingCanvas({
   penColorRef.current = penColor
   drawingRef.current = drawing
 
-  // Sync stroke/redo counts to state (for button enable/disable)
-  // Called only after stroke operations, NOT during pointermove
   const syncCounts = useCallback(() => {
     const s = stateRef.current
     setCanSubmit(s.strokes.length > 0)
@@ -160,10 +156,8 @@ export default function DrawingCanvas({
     if ('vibrate' in navigator) navigator.vibrate(pattern)
   }, [])
 
-  // Clear canvas when character changes, or pre-load strokes for edit mode
   useEffect(() => {
     if (initialStrokes && initialStrokes.length > 0) {
-      // Pre-load existing strokes into the drawing state
       const stateRef = drawingRef.current.stateRef
       stateRef.current = {
         ...stateRef.current,
@@ -180,12 +174,10 @@ export default function DrawingCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetCharacter, initialStrokes])
 
-  // Initial setup
   useEffect(() => {
     setupAndRender()
   }, [setupAndRender])
 
-  // Resize handler
   useEffect(() => {
     const handleResize = () => {
       setupAndRender()
@@ -195,7 +187,6 @@ export default function DrawingCanvas({
     return () => window.removeEventListener('resize', handleResize)
   }, [setupAndRender, renderOverlay])
 
-  // ResizeObserver — detect container size changes (e.g. mobile landscape)
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -204,12 +195,10 @@ export default function DrawingCanvas({
     return () => observer.disconnect()
   }, [setupAndRender])
 
-  // Redraw overlay when grid/guide toggles change
   useEffect(() => {
     renderOverlay()
   }, [renderOverlay])
 
-  // Bind pointer events ONCE — use refs, not drawing object
   const pendingPointerMoveRef = useRef<PointerEvent | null>(null)
   const rafMoveRef = useRef<number | null>(null)
   useEffect(() => {
@@ -273,7 +262,6 @@ export default function DrawingCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
@@ -296,7 +284,6 @@ export default function DrawingCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncCounts])
 
-  // Brush cursor preview — track pointer position over canvas
   const handlePointerMoveCursor = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -308,7 +295,6 @@ export default function DrawingCanvas({
     setCursorPos(null)
   }, [])
 
-  // Undo/Redo/Clear handlers that sync counts after
   const handleUndo = useCallback(() => {
     drawingRef.current.handleUndo()
     syncCounts()
@@ -349,7 +335,6 @@ export default function DrawingCanvas({
       penThickness * dpr,
     )
 
-    // AWAIT the parent's handler — ensures advance() runs before we reset
     await onSubmit({
       strokes: state.strokes,
       strokeCount: state.strokes.length,
@@ -366,7 +351,6 @@ export default function DrawingCanvas({
     setShowSaved(true)
     setTimeout(() => setShowSaved(false), 600)
 
-    // reset + render happens via the targetCharacter useEffect
     syncCounts()
   }, [onSubmit, penThickness, syncCounts, vibrate])
 
@@ -386,32 +370,35 @@ export default function DrawingCanvas({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Reference card - top right */}
-      <div className="landscape-compact flex items-start justify-between px-4 pt-3">
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          <span className="font-semibold text-gray-700 dark:text-gray-300">
-            {currentIdx + 1}
-          </span>
-          /{totalChars}
-        </div>
-        <div className="flex flex-col items-center rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <span className="text-2xl font-bold text-gray-900 dark:text-white sm:text-4xl">
-            {targetCharacter}
-          </span>
-          <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {targetTransliteration}
-          </span>
-        </div>
-      </div>
-
       {/* Canvas + Toolbar: column on mobile, row on desktop */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
+        {/* Mobile toolbar (top, scrollable) */}
+        <Toolbar
+          isErasing={isErasing}
+          onToggleEraser={() => setIsErasing(!isErasing)}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onClear={handleClear}
+          onRotate={handleRotate}
+          canRotate={strokeCount > 0}
+          penThickness={penThickness}
+          onPenThicknessChange={setPenThickness}
+          penColor={penColor}
+          onPenColorChange={setPenColor}
+          canRedo={redoCount > 0}
+          canUndo={strokeCount > 0}
+          showGrid={showGrid}
+          onToggleGrid={() => setShowGrid((v) => !v)}
+          showGuide={showGuide}
+          onToggleGuide={() => setShowGuide((v) => !v)}
+        />
+
         {/* Canvas */}
         <div
           ref={containerRef}
-          className="flex min-h-0 flex-1 items-center justify-center p-3 sm:order-2 sm:p-4"
+          className="flex min-h-0 flex-1 items-center justify-center p-2 sm:order-2 sm:p-4"
         >
-          <div className="relative aspect-square max-h-full max-w-full overflow-hidden sm:aspect-square sm:max-w-[600px]">
+          <div className="relative aspect-square max-h-full max-w-full overflow-hidden sm:max-w-[600px]">
             <canvas
               ref={canvasRef}
               className="h-full w-full touch-none rounded-xl border-2 border-gray-200 bg-white shadow-md dark:border-gray-700"
@@ -438,11 +425,14 @@ export default function DrawingCanvas({
               />
             )}
 
-            {/* Empty state hint */}
+            {/* Empty state — target character as subtle hint in center */}
             {isEmpty && !currentStrokeActive && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <span className="select-none text-2xl font-medium text-gray-300 dark:text-gray-600">
-                  Draw {targetCharacter} here
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
+                <span className="select-none text-5xl font-bold text-gray-200 dark:text-gray-700 sm:text-6xl">
+                  {targetCharacter}
+                </span>
+                <span className="select-none text-sm text-gray-300 dark:text-gray-600">
+                  Draw {targetTransliteration} here
                 </span>
               </div>
             )}
@@ -468,29 +458,10 @@ export default function DrawingCanvas({
             </AnimatePresence>
           </div>
         </div>
-
-        {/* Toolbar */}
-        <Toolbar
-          isErasing={isErasing}
-          onToggleEraser={() => setIsErasing(!isErasing)}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onClear={handleClear}
-          penThickness={penThickness}
-          onPenThicknessChange={setPenThickness}
-          penColor={penColor}
-          onPenColorChange={setPenColor}
-          canRedo={redoCount > 0}
-          canUndo={strokeCount > 0}
-          showGrid={showGrid}
-          onToggleGrid={() => setShowGrid((v) => !v)}
-          showGuide={showGuide}
-          onToggleGuide={() => setShowGuide((v) => !v)}
-        />
       </div>
 
-      {/* Navigation */}
-      <div className="flex gap-2 overflow-x-auto px-4 pb-4">
+      {/* Navigation bar — full width below canvas + toolbar */}
+      <div className="flex gap-2 px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
         <motion.button
           onClick={handlePrevClick}
           className="flex flex-1 items-center justify-center whitespace-nowrap gap-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
@@ -508,21 +479,6 @@ export default function DrawingCanvas({
         >
           Skip
           <ChevronRight size={18} strokeWidth={2.5} />
-        </motion.button>
-        <motion.button
-          onClick={handleRotate}
-          disabled={strokeCount === 0}
-          className="flex items-center justify-center whitespace-nowrap gap-1 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          whileHover={{ scale: strokeCount > 0 ? 1.05 : 1 }}
-          whileTap={{ scale: strokeCount > 0 ? 0.9 : 1 }}
-          aria-label="Rotate 90° clockwise"
-        >
-          <motion.div
-            whileHover={{ rotate: 90 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-          >
-            <RotateCw size={18} strokeWidth={2.5} />
-          </motion.div>
         </motion.button>
         <motion.button
           onClick={handleSubmit}
