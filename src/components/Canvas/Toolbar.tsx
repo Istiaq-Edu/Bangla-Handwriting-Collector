@@ -1,6 +1,7 @@
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Undo2, Redo2, Eraser, Trash2, RotateCw,
+  Undo2, Redo2, Eraser, Trash2, RotateCw, ChevronDown,
 } from 'lucide-react'
 
 interface ToolbarProps {
@@ -67,21 +68,95 @@ function Divider({ vertical }: { vertical?: boolean }) {
   )
 }
 
-function ColorSwatches({ penColor, onPenColorChange, layout }: { penColor: string; onPenColorChange: (c: string) => void; layout: 'vertical' | 'horizontal' }) {
+function ColorDropdown({ penColor, onPenColorChange }: { penColor: string; onPenColorChange: (c: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  const updatePos = useCallback(() => {
+    if (!btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    setPos({
+      top: rect.bottom + 6,
+      left: rect.left,
+    })
+  }, [])
+
+  const handleOpen = () => {
+    updatePos()
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const handleClick = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node) &&
+          btnRef.current && !btnRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    const handleScroll = () => updatePos()
+    document.addEventListener('mousedown', handleClick)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
+  }, [open, updatePos])
+
   return (
-    <div className={layout === 'vertical' ? 'flex flex-col items-center gap-1.5' : 'flex items-center gap-1'}>
-      {COLORS.map((c) => (
-        <motion.button
-          key={c.value}
-          onClick={() => onPenColorChange(c.value)}
-          className={`h-6 w-6 shrink-0 rounded-full border-2 transition-all ${penColor === c.value ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-800 scale-110 border-transparent' : 'border-gray-300 dark:border-gray-600'}`}
-          style={{ backgroundColor: c.value }}
-          aria-label={c.label}
-          whileHover={{ scale: 1.25 }}
-          whileTap={{ scale: 0.8 }}
-        />
-      ))}
-    </div>
+    <>
+      <motion.button
+        ref={btnRef}
+        onClick={open ? () => setOpen(false) : handleOpen}
+        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 p-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+        aria-label="Color picker"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <div className="h-5 w-5 rounded-full border border-gray-300 shadow-sm dark:border-gray-600" style={{ backgroundColor: penColor }} />
+        <ChevronDown size={12} strokeWidth={2.5} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </motion.button>
+
+      {open && (
+        <div
+          ref={panelRef}
+          className="fixed z-50"
+          style={{ top: pos.top, left: pos.left }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className="rounded-xl border border-gray-200 bg-white p-2 shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+          >
+            <div className="flex flex-col gap-1">
+              {COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => {
+                    onPenColorChange(c.value)
+                    setOpen(false)
+                  }}
+                  className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                    penColor === c.value ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                  }`}
+                >
+                  <div className={`h-6 w-6 rounded-full border-2 shadow-sm ${penColor === c.value ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-300 dark:border-gray-600'}`} style={{ backgroundColor: c.value }} />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{c.label}</span>
+                  {penColor === c.value && (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -123,7 +198,7 @@ export default function Toolbar({
 
         <Divider />
 
-        <ColorSwatches penColor={penColor} onPenColorChange={onPenColorChange} layout="vertical" />
+        <ColorDropdown penColor={penColor} onPenColorChange={onPenColorChange} />
       </div>
 
       {/* ═══ Mobile: horizontal bar ═══ */}
@@ -149,7 +224,7 @@ export default function Toolbar({
 
         <Divider vertical />
 
-        <ColorSwatches penColor={penColor} onPenColorChange={onPenColorChange} layout="horizontal" />
+        <ColorDropdown penColor={penColor} onPenColorChange={onPenColorChange} />
       </div>
     </>
   )

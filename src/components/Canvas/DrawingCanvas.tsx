@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ArrowRight, CircleCheck, Maximize2, Minimize2 } from 'lucide-react'
+import { ChevronLeft, ArrowRight, CheckCircle2, Maximize2, Minimize2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { usePointerDrawing } from '../../hooks/usePointerDrawing'
 import { renderStrokes, setupCanvas, canvasToPng } from '../../utils/canvasUtils'
@@ -429,7 +429,7 @@ export default function DrawingCanvas({
             transition={{ duration: 0.25, ease: 'easeOut' }}
           >
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 shadow-lg">
-              <CircleCheck size={36} strokeWidth={3} className="text-white" />
+              <CheckCircle2 size={36} strokeWidth={2.5} className="text-white" />
             </div>
             <span className="text-lg font-semibold text-green-600 dark:text-green-400">
               Saved!
@@ -535,8 +535,8 @@ export default function DrawingCanvas({
               whileHover={{ scale: canSubmit ? 1.03 : 1 }}
               whileTap={{ scale: canSubmit ? 0.95 : 1 }}
             >
-              <CircleCheck size={18} strokeWidth={2.5} />
-              {submitLabel ?? 'OK'}
+              <CheckCircle2 size={18} strokeWidth={2.5} />
+              {submitLabel ?? 'Submit'}
             </motion.button>
           </div>
         </div>
@@ -619,8 +619,8 @@ export default function DrawingCanvas({
           whileHover={{ scale: canSubmit ? 1.02 : 1 }}
           whileTap={{ scale: canSubmit ? 0.96 : 1 }}
         >
-          <CircleCheck size={18} strokeWidth={2.5} />
-          {submitLabel ?? 'OK'}
+          <CheckCircle2 size={18} strokeWidth={2.5} />
+          {submitLabel ?? 'Submit'}
         </motion.button>
       </div>
     </div>
