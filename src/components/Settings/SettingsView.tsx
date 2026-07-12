@@ -49,7 +49,7 @@ export default function SettingsView() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-md space-y-6 p-4">
+      <div className="mx-auto max-w-md space-y-6 p-4 overscroll-contain sm:max-w-lg md:max-w-xl">
         <section>
           <h2 className="mb-3 text-lg font-semibold">Presentation Mode</h2>
           <div className="grid grid-cols-2 gap-2">
@@ -102,7 +102,7 @@ export default function SettingsView() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">
+          <h2 id="pen-thickness" className="mb-3 text-lg font-semibold">
             Pen Thickness: {penThickness}px
           </h2>
           <input
@@ -111,6 +111,7 @@ export default function SettingsView() {
             max="20"
             value={penThickness}
             onChange={(e) => setPenThickness(Number(e.target.value))}
+            aria-labelledby="pen-thickness"
             className="w-full"
           />
         </section>

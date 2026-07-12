@@ -19,8 +19,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-full flex-col bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <header className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-        <Link to="/" className="text-lg font-bold tracking-tight">
+      <header style={{ paddingTop: 'env(safe-area-inset-top)' }} className="landscape-compact-header flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+        <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
+        <Link to="/" className="truncate whitespace-nowrap text-lg font-bold tracking-tight">
           <span className="text-blue-600 dark:text-blue-400">Bangla</span> Handwriting
         </Link>
         <div className="flex items-center gap-3">
@@ -45,17 +46,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <ThemeToggleIcon isDark={theme === 'dark'} />
           </motion.button>
         </div>
+      </div>
       </header>
 
       <main className="flex-1 overflow-hidden">{children}</main>
 
-      <nav className="flex items-center justify-around border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+      <nav style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} className="landscape-compact-nav flex items-center justify-around border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+        <div className="max-w-3xl mx-auto flex items-center justify-around w-full">
         {NAV_ITEMS.map((item) => {
           const active = location.pathname === item.path
           return (
             <Link
               key={item.path}
               to={item.path}
+              aria-current={active ? 'page' : undefined}
               className={`relative flex flex-col items-center gap-1 px-3 py-2 text-xs transition-colors ${
                 active
                   ? 'text-blue-600 dark:text-blue-400'
@@ -70,10 +74,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 />
               )}
               <NavItemIcon icon={item.icon} active={active} />
-              <span className="font-medium">{item.label}</span>
+              <span className="whitespace-nowrap font-medium">{item.label}</span>
             </Link>
           )
         })}
+        </div>
       </nav>
     </div>
   )

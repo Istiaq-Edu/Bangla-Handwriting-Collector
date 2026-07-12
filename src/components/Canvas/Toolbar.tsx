@@ -50,7 +50,7 @@ function ToolButton({
     <motion.button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg border p-2.5 transition-colors ${btnClass(active ?? false)}`}
+      className={`shrink-0 rounded-lg border p-3 transition-colors sm:p-2.5 ${btnClass(active ?? false)}`}
       aria-label={label}
       whileHover={{ scale: disabled ? 1 : 1.05 }}
       whileTap={{ scale: disabled ? 1 : 0.9 }}
@@ -64,7 +64,7 @@ function ColorSwatch({ color, active, onClick, label }: { color: string; active:
   return (
     <motion.button
       onClick={onClick}
-      className={`h-6 w-6 rounded-full border-2 ${active ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-800' : 'border-gray-300 dark:border-gray-600'}`}
+      className={`h-8 w-8 shrink-0 rounded-full border-2 ${active ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-800' : 'border-gray-300 dark:border-gray-600'}`}
       style={{ backgroundColor: color }}
       aria-label={label}
       whileHover={{ scale: 1.2 }}
@@ -159,7 +159,7 @@ export default function Toolbar({
             max="20"
             value={penThickness}
             onChange={(e) => onPenThicknessChange(Number(e.target.value))}
-            className="h-24 w-1 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
+            className="h-24 w-1.5 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
             style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
             aria-label="Pen thickness"
           />
@@ -170,7 +170,7 @@ export default function Toolbar({
       </div>
 
       {/* Mobile: horizontal bar */}
-      <div className="order-first flex items-center gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-700 sm:hidden">
+      <div className="order-first flex items-center gap-2 overflow-x-auto overscroll-contain border-b border-gray-200 px-3 py-2 dark:border-gray-700 sm:hidden">
         <ToolButton onClick={onUndo} disabled={!canUndo} label="Undo">
           <Undo2 size={18} strokeWidth={2} />
         </ToolButton>
@@ -211,7 +211,7 @@ export default function Toolbar({
             max="20"
             value={penThickness}
             onChange={(e) => onPenThicknessChange(Number(e.target.value))}
-            className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
+            className="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
             aria-label="Pen thickness"
           />
           <span className="w-7 shrink-0 text-right text-xs text-gray-500 dark:text-gray-400">

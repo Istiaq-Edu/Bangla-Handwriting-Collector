@@ -155,7 +155,7 @@ export default function CollectionGrid() {
               <span className="text-3xl font-bold text-gray-900 dark:text-white">
                 {char?.unicode}
               </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
+              <span className="whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                 {char?.transliteration} ({loadingSamples ? '...' : samples.length} samples)
               </span>
             </div>
@@ -170,16 +170,16 @@ export default function CollectionGrid() {
             </motion.button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
             {loadingSamples ? (
               <div className="flex h-full items-center justify-center text-gray-500">
                 Loading samples...
               </div>
             ) : samples.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-gray-500">
-                <span className="mb-2 text-gray-300 dark:text-gray-600">
-                  <ImageIcon size={40} strokeWidth={1.5} />
-                </span>
+                 <span className="mb-2 text-gray-300 dark:text-gray-600">
+                   <ImageIcon strokeWidth={1.5} className="size-8 sm:size-10" />
+                 </span>
                 <p>No samples yet for {char?.unicode}</p>
                 <motion.button
                   onClick={handleDrawThis}
@@ -214,13 +214,13 @@ export default function CollectionGrid() {
   // ── Grid mode ──
   return (
     <Layout>
-      <div className="h-full overflow-y-auto p-4">
-        <div className="mb-4 flex gap-2">
+      <div className="h-full overflow-y-auto p-4 overscroll-contain">
+        <div className="mb-4 flex gap-2 overflow-x-auto">
           {FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${
                 filter === f.value
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
@@ -244,7 +244,7 @@ export default function CollectionGrid() {
                 <span className="text-3xl font-bold text-gray-900 dark:text-white">
                   {char.unicode}
                 </span>
-                <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <span className="mt-1 block w-full truncate text-xs text-gray-500 dark:text-gray-400">
                   {char.transliteration}
                 </span>
                 <span className={`mt-1 text-sm font-semibold ${getCountTextColor(count)}`}>
@@ -306,6 +306,7 @@ function SampleCard({
       {/* Click to open lightbox */}
       <button
         onClick={onClick}
+        aria-label={`Sample ${index + 1} — click to enlarge`}
         className="aspect-square w-full overflow-hidden rounded bg-gray-50 dark:bg-gray-900"
       >
         {imgError ? (
@@ -362,6 +363,14 @@ function Lightbox({
     setImgError(!sample.pngBlob || sample.pngBlob.size === 0)
   }, [sample.pngBlob])
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const char = getCharacterById(sample.characterId)
 
   const handleModify = () => {
@@ -372,6 +381,9 @@ function Lightbox({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sample viewer"
       className="fixed inset-0 z-50 flex flex-col bg-black/80"
       onClick={onClose}
     >
@@ -461,7 +473,7 @@ function Lightbox({
 
       {/* Info */}
       <div
-        className="px-4 pb-4 text-center text-xs text-white/40"
+        className="truncate px-4 pb-4 text-center text-xs text-white/40"
         onClick={(e) => e.stopPropagation()}
       >
         {sample.strokeCount} strokes · {sample.deviceType} · {sample.hasPressure ? 'with pressure' : 'no pressure'} · {new Date(sample.createdAt).toLocaleString()}

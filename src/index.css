@@ -10,12 +10,46 @@ html, body, #root {
   padding: 0;
 }
 
+#root {
+  height: 100dvh;
+}
+
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: "Noto Sans Bengali", "Noto Sans", system-ui, -apple-system, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 canvas {
   touch-action: none;
+}
+
+*:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-compact {
+    display: none !important;
+  }
+  .landscape-compact-header {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+  .landscape-compact-nav {
+    padding-top: 0.125rem !important;
+    padding-bottom: 0.125rem !important;
+  }
 }

@@ -235,8 +235,8 @@ export default function ExportView() {
 
   return (
     <Layout>
-      <div className="h-full overflow-y-auto p-4">
-        <div className="mx-auto max-w-md space-y-5">
+      <div className="h-full overflow-y-auto p-4 overscroll-contain">
+        <div className="mx-auto max-w-md space-y-5 sm:max-w-lg md:max-w-xl">
           {/* Summary card */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -478,6 +478,14 @@ function ShareSheet({
   const sizeMB = (zipSize / 1024 / 1024).toFixed(1)
   const sizeKB = (zipSize / 1024).toFixed(0)
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const shareOptions: { id: string; label: string; icon: React.ReactNode; onClick: () => void; available: boolean; color: string }[] = [
     {
       id: 'native-files',
@@ -567,7 +575,10 @@ function ShareSheet({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-white dark:bg-gray-900"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Share dataset"
+        className="fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-white dark:bg-gray-900"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Handle */}

@@ -195,6 +195,15 @@ export default function DrawingCanvas({
     return () => window.removeEventListener('resize', handleResize)
   }, [setupAndRender, renderOverlay])
 
+  // ResizeObserver — detect container size changes (e.g. mobile landscape)
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const observer = new ResizeObserver(() => setupAndRender())
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [setupAndRender])
+
   // Redraw overlay when grid/guide toggles change
   useEffect(() => {
     renderOverlay()
@@ -378,7 +387,7 @@ export default function DrawingCanvas({
   return (
     <div className="flex h-full flex-col">
       {/* Reference card - top right */}
-      <div className="flex items-start justify-between px-4 pt-3">
+      <div className="landscape-compact flex items-start justify-between px-4 pt-3">
         <div className="text-sm text-gray-500 dark:text-gray-400">
           <span className="font-semibold text-gray-700 dark:text-gray-300">
             {currentIdx + 1}
@@ -386,7 +395,7 @@ export default function DrawingCanvas({
           /{totalChars}
         </div>
         <div className="flex flex-col items-center rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <span className="text-4xl font-bold text-gray-900 dark:text-white">
+          <span className="text-2xl font-bold text-gray-900 dark:text-white sm:text-4xl">
             {targetCharacter}
           </span>
           <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -402,7 +411,7 @@ export default function DrawingCanvas({
           ref={containerRef}
           className="flex min-h-0 flex-1 items-center justify-center p-3 sm:order-2 sm:p-4"
         >
-          <div className="relative aspect-[4/3] max-h-full max-w-full sm:aspect-square">
+          <div className="relative aspect-square max-h-full max-w-full overflow-hidden sm:aspect-square sm:max-w-[600px]">
             <canvas
               ref={canvasRef}
               className="h-full w-full touch-none rounded-xl border-2 border-gray-200 bg-white shadow-md dark:border-gray-700"
@@ -420,8 +429,8 @@ export default function DrawingCanvas({
               <div
                 className="pointer-events-none absolute rounded-full border border-gray-400 opacity-50"
                 style={{
-                  left: cursorPos.x - penThickness / 2,
-                  top: cursorPos.y - penThickness / 2,
+                  left: cursorPos.x - penThickness / 2 + 2,
+                  top: cursorPos.y - penThickness / 2 + 2,
                   width: penThickness,
                   height: penThickness,
                   backgroundColor: penColor + '30',
@@ -481,10 +490,10 @@ export default function DrawingCanvas({
       </div>
 
       {/* Navigation */}
-      <div className="flex gap-2 px-4 pb-4">
+      <div className="flex gap-2 overflow-x-auto px-4 pb-4">
         <motion.button
           onClick={handlePrevClick}
-          className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          className="flex flex-1 items-center justify-center whitespace-nowrap gap-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.96 }}
         >
@@ -493,7 +502,7 @@ export default function DrawingCanvas({
         </motion.button>
         <motion.button
           onClick={handleSkipClick}
-          className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          className="flex flex-1 items-center justify-center whitespace-nowrap gap-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.96 }}
         >
@@ -503,7 +512,7 @@ export default function DrawingCanvas({
         <motion.button
           onClick={handleRotate}
           disabled={strokeCount === 0}
-          className="flex items-center justify-center gap-1 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          className="flex items-center justify-center whitespace-nowrap gap-1 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           whileHover={{ scale: strokeCount > 0 ? 1.05 : 1 }}
           whileTap={{ scale: strokeCount > 0 ? 0.9 : 1 }}
           aria-label="Rotate 90° clockwise"
@@ -518,7 +527,7 @@ export default function DrawingCanvas({
         <motion.button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="flex flex-[2] items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-700"
+          className="flex flex-[2] items-center justify-center whitespace-nowrap gap-1.5 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-700"
           whileHover={{ scale: canSubmit ? 1.02 : 1 }}
           whileTap={{ scale: canSubmit ? 0.96 : 1 }}
         >

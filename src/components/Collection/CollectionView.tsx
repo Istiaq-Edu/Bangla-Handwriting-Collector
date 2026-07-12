@@ -228,7 +228,7 @@ export default function CollectionView() {
           submitLabel={isEditMode ? '✓ Save' : '✓ OK'}
         />
         {!isEditMode && (
-          <div className="flex items-center justify-center border-t border-gray-200 px-4 py-2 dark:border-gray-700">
+          <div className="landscape-compact flex items-center justify-center border-t border-gray-200 px-4 py-2 dark:border-gray-700">
             <ProgressDots
               currentIdx={position}
               total={order.length}

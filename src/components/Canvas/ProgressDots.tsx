@@ -32,7 +32,7 @@ export default function ProgressDots({ currentIdx, total }: ProgressDotsProps) {
       {start > 0 && <span className="text-xs text-gray-400">...</span>}
       {dots}
       {start + visibleDots < total && <span className="text-xs text-gray-400">...</span>}
-      <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+      <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">
         {currentIdx + 1}/{total}
       </span>
     </div>
