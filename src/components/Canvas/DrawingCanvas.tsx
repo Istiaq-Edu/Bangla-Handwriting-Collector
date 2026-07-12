@@ -51,6 +51,7 @@ export default function DrawingCanvas({
   const setPenThickness = useStore((s) => s.setPenThickness)
   const penColor = useStore((s) => s.penColor)
   const setPenColor = useStore((s) => s.setPenColor)
+  const showGrid = useStore((s) => s.showGrid)
   const [isErasing, setIsErasing] = useState(false)
   const [canSubmit, setCanSubmit] = useState(false)
   const [strokeCount, setStrokeCount] = useState(0)
@@ -58,7 +59,6 @@ export default function DrawingCanvas({
   const [showSaved, setShowSaved] = useState(false)
   const [isEmpty, setIsEmpty] = useState(true)
   const [currentStrokeActive, setCurrentStrokeActive] = useState(false)
-  const [showGrid, setShowGrid] = useState(true)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
 
   const render = useCallback(() => {
@@ -372,8 +372,6 @@ export default function DrawingCanvas({
           onPenColorChange={setPenColor}
           canRedo={redoCount > 0}
           canUndo={strokeCount > 0}
-          showGrid={showGrid}
-          onToggleGrid={() => setShowGrid((v) => !v)}
         />
 
         {/* Canvas */}

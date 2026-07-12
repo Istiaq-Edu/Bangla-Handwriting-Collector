@@ -50,6 +50,7 @@ interface AppState {
   toggleTheme: () => void
   setPenThickness: (thickness: number) => void
   setPenColor: (color: string) => void
+  setShowGrid: (show: boolean) => void
   toggleGrid: () => void
   toggleGuide: () => void
   incrementTotalSamples: () => void
@@ -65,7 +66,7 @@ export const useStore = create<AppState>((set, get) => ({
   theme: getStoredTheme(),
   penThickness: Number(localStorage.getItem('bangla-hw-pen-thickness')) || 4,
   penColor: localStorage.getItem('bangla-hw-pen-color') || '#000000',
-  showGrid: false,
+  showGrid: true,
   showGuide: false,
   totalSamples: 0,
   editState: { sampleId: null, initialStrokes: null, sample: null },
@@ -118,6 +119,10 @@ export const useStore = create<AppState>((set, get) => ({
   setPenColor: (color) => {
     localStorage.setItem('bangla-hw-pen-color', color)
     set({ penColor: color })
+  },
+
+  setShowGrid: (show) => {
+    set({ showGrid: show })
   },
 
   toggleGrid: () => {

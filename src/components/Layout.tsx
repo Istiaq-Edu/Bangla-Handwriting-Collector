@@ -35,8 +35,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden">{children}</main>
-
+      <main className="flex-1 overflow-y-auto">{children}</main>
       <nav style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} className="landscape-compact-nav flex items-center justify-around border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-around">
           {NAV_ITEMS.map((item) => {

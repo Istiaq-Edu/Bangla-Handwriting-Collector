@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Undo2, Redo2, Eraser, Trash2, Grid3x3, RotateCw, ChevronDown,
+  Undo2, Redo2, Eraser, Trash2, RotateCw, ChevronDown,
 } from 'lucide-react'
 
 interface ToolbarProps {
@@ -16,8 +16,6 @@ interface ToolbarProps {
   onPenColorChange: (color: string) => void
   canUndo: boolean
   canRedo: boolean
-  showGrid: boolean
-  onToggleGrid: () => void
 }
 
 const COLORS = [
@@ -148,8 +146,6 @@ export default function Toolbar({
   onPenColorChange,
   canUndo,
   canRedo,
-  showGrid,
-  onToggleGrid,
 }: ToolbarProps) {
   return (
     <>
@@ -176,12 +172,6 @@ export default function Toolbar({
 
         <Divider />
 
-        <ToolButton onClick={onToggleGrid} active={showGrid} label="Toggle grid">
-          <Grid3x3 size={18} strokeWidth={2} />
-        </ToolButton>
-
-        <Divider />
-
         <ColorPicker penColor={penColor} onPenColorChange={onPenColorChange} />
       </div>
 
@@ -204,12 +194,6 @@ export default function Toolbar({
         </ToolButton>
         <ToolButton onClick={onRotate} disabled={!canRotate} label="Rotate">
           <RotateCw size={16} strokeWidth={2} />
-        </ToolButton>
-
-        <Divider vertical />
-
-        <ToolButton onClick={onToggleGrid} active={showGrid} label="Grid">
-          <Grid3x3 size={16} strokeWidth={2} />
         </ToolButton>
 
         <Divider vertical />
