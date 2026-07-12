@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ArrowRight, CircleCheck } from 'lucide-react'
+import { ChevronLeft, ArrowRight, CircleCheck, Maximize2, Minimize2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { usePointerDrawing } from '../../hooks/usePointerDrawing'
 import { renderStrokes, setupCanvas, canvasToPng } from '../../utils/canvasUtils'
@@ -60,6 +60,7 @@ export default function DrawingCanvas({
   const [isEmpty, setIsEmpty] = useState(true)
   const [currentStrokeActive, setCurrentStrokeActive] = useState(false)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const render = useCallback(() => {
     const canvas = canvasRef.current
@@ -182,14 +183,26 @@ export default function DrawingCanvas({
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
-    const observer = new ResizeObserver(() => setupAndRender())
+    const observer = new ResizeObserver(() => {
+      setupAndRender()
+      renderOverlay()
+    })
     observer.observe(container)
     return () => observer.disconnect()
-  }, [setupAndRender])
+  }, [setupAndRender, renderOverlay])
 
   useEffect(() => {
     renderOverlay()
   }, [renderOverlay])
+
+  // Re-render on fullscreen toggle
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setupAndRender()
+      renderOverlay()
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [isFullscreen, setupAndRender, renderOverlay])
 
   const pendingPointerMoveRef = useRef<PointerEvent | null>(null)
   const rafMoveRef = useRef<number | null>(null)
@@ -267,14 +280,18 @@ export default function DrawingCanvas({
         e.preventDefault()
         drawingRef.current.handleRedo()
         syncCounts()
-      } else if (e.key === 'Escape' && isErasingRef.current) {
-        setIsErasing(false)
+      } else if (e.key === 'Escape') {
+        if (isErasingRef.current) {
+          setIsErasing(false)
+        } else if (isFullscreen) {
+          setIsFullscreen(false)
+        }
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncCounts])
+  }, [syncCounts, isFullscreen])
 
   const handlePointerMoveCursor = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -360,11 +377,185 @@ export default function DrawingCanvas({
     onPrevious()
   }, [onPrevious, syncCounts, vibrate])
 
+  // Canvas content (shared between normal + fullscreen)
+  const canvasContent = (
+    <>
+      <canvas
+        ref={canvasRef}
+        className="h-full w-full touch-none rounded-xl border-2 border-gray-200 bg-white shadow-md dark:border-gray-700"
+        onPointerMove={handlePointerMoveCursor}
+        onPointerLeave={handlePointerLeaveCursor}
+      />
+      <canvas
+        ref={overlayRef}
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        aria-hidden="true"
+      />
+
+      {/* Brush cursor preview */}
+      {cursorPos && !isErasing && (
+        <div
+          className="pointer-events-none absolute rounded-full border border-gray-400 opacity-50"
+          style={{
+            left: cursorPos.x - penThickness / 2 + 2,
+            top: cursorPos.y - penThickness / 2 + 2,
+            width: penThickness,
+            height: penThickness,
+            backgroundColor: penColor + '30',
+          }}
+        />
+      )}
+
+      {/* Empty state */}
+      {isEmpty && !currentStrokeActive && (
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
+          <span className="select-none text-5xl font-bold text-gray-200 dark:text-gray-700 sm:text-6xl">
+            {targetCharacter}
+          </span>
+          <span className="select-none text-sm text-gray-300 dark:text-gray-600">
+            Draw {targetTransliteration} here
+          </span>
+        </div>
+      )}
+
+      {/* Saved confirmation overlay */}
+      <AnimatePresence>
+        {showSaved && (
+          <motion.div
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2"
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 shadow-lg">
+              <CircleCheck size={36} strokeWidth={3} className="text-white" />
+            </div>
+            <span className="text-lg font-semibold text-green-600 dark:text-green-400">
+              Saved!
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating thickness slider — hides while drawing */}
+      <AnimatePresence>
+        {!currentStrokeActive && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.12 }}
+            className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2"
+          >
+            <div className="flex items-center gap-2.5 rounded-2xl border border-gray-200 bg-white/95 px-4 py-2 shadow-xl backdrop-blur-md dark:border-gray-700 dark:bg-gray-800/95">
+              <motion.div
+                className="shrink-0 rounded-full"
+                style={{ backgroundColor: penColor }}
+                animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              />
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={penThickness}
+                onChange={(e) => setPenThickness(Number(e.target.value))}
+                className="thickness-slider h-2 w-28 cursor-pointer appearance-none rounded-full sm:w-40"
+                style={{
+                  background: `linear-gradient(to right, ${penColor} 0%, ${penColor} ${((penThickness - 1) / 19) * 100}%, #e5e7eb ${((penThickness - 1) / 19) * 100}%, #e5e7eb 100%)`,
+                }}
+                aria-label="Pen thickness"
+              />
+              <span className="w-7 shrink-0 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
+                {penThickness}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
+
+  // ── FULLSCREEN / ZOOM MODE ──
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {/* Top bar — exit + tools */}
+        <div className="flex items-center justify-between px-3 py-2">
+          <motion.button
+            onClick={() => setIsFullscreen(false)}
+            className="flex items-center gap-1.5 rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Minimize2 size={18} strokeWidth={2.5} />
+            Exit
+          </motion.button>
+
+          {/* Inline tools for fullscreen */}
+          <div className="flex items-center gap-1.5">
+            <Toolbar
+              isErasing={isErasing}
+              onToggleEraser={() => setIsErasing((v) => !v)}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onClear={handleClear}
+              onRotate={handleRotate}
+              canRotate={strokeCount > 0}
+              penColor={penColor}
+              onPenColorChange={setPenColor}
+              canRedo={redoCount > 0}
+              canUndo={strokeCount > 0}
+            />
+          </div>
+
+          {/* Nav buttons */}
+          <div className="flex items-center gap-1.5">
+            <motion.button
+              onClick={handlePrevClick}
+              className="flex items-center justify-center rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <ChevronLeft size={18} strokeWidth={2.5} />
+            </motion.button>
+            <motion.button
+              onClick={handleSkipClick}
+              className="flex items-center justify-center rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <ArrowRight size={18} strokeWidth={2.5} />
+            </motion.button>
+            <motion.button
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:shadow-none dark:disabled:bg-gray-700"
+              whileHover={{ scale: canSubmit ? 1.03 : 1 }}
+              whileTap={{ scale: canSubmit ? 0.95 : 1 }}
+            >
+              <CircleCheck size={18} strokeWidth={2.5} />
+              {submitLabel ?? 'OK'}
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Canvas — fills ALL remaining space */}
+        <div ref={containerRef} className="flex min-h-0 flex-1 items-center justify-center p-2">
+          <div className="relative h-full w-full max-h-full max-w-full overflow-hidden">
+            {canvasContent}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── NORMAL MODE ──
   return (
     <div className="flex h-full flex-col">
-      {/* Canvas + Toolbar: column on mobile, row on desktop */}
+      {/* Canvas + Toolbar */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
-        {/* Mobile toolbar (top, scrollable) */}
         <Toolbar
           isErasing={isErasing}
           onToggleEraser={() => setIsErasing((v) => !v)}
@@ -379,106 +570,24 @@ export default function DrawingCanvas({
           canUndo={strokeCount > 0}
         />
 
-        {/* Canvas */}
+        {/* Canvas — fills all available space */}
         <div
           ref={containerRef}
-          className="flex min-h-0 flex-1 items-center justify-center p-2 sm:order-2 sm:p-4"
+          className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center p-2 sm:order-2 sm:p-3"
         >
-          <div className="relative aspect-square max-h-full max-w-full overflow-hidden sm:max-w-[600px]">
-            <canvas
-              ref={canvasRef}
-              className="h-full w-full touch-none rounded-xl border-2 border-gray-200 bg-white shadow-md dark:border-gray-700"
-              onPointerMove={handlePointerMoveCursor}
-              onPointerLeave={handlePointerLeaveCursor}
-            />
-            <canvas
-              ref={overlayRef}
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              aria-hidden="true"
-            />
+          <div className="relative h-full max-h-full max-w-full overflow-hidden">
+            {canvasContent}
 
-            {/* Brush cursor preview */}
-            {cursorPos && !isErasing && (
-              <div
-                className="pointer-events-none absolute rounded-full border border-gray-400 opacity-50"
-                style={{
-                  left: cursorPos.x - penThickness / 2 + 2,
-                  top: cursorPos.y - penThickness / 2 + 2,
-                  width: penThickness,
-                  height: penThickness,
-                  backgroundColor: penColor + '30',
-                }}
-              />
-            )}
-
-            {/* Empty state — target character as subtle hint in center */}
-            {isEmpty && !currentStrokeActive && (
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
-                <span className="select-none text-5xl font-bold text-gray-200 dark:text-gray-700 sm:text-6xl">
-                  {targetCharacter}
-                </span>
-                <span className="select-none text-sm text-gray-300 dark:text-gray-600">
-                  Draw {targetTransliteration} here
-                </span>
-              </div>
-            )}
-
-            {/* Saved confirmation overlay */}
-            <AnimatePresence>
-              {showSaved && (
-                <motion.div
-                  className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2"
-                  initial={{ opacity: 0, scale: 0.6 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.6 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 shadow-lg">
-                    <CircleCheck size={36} strokeWidth={3} className="text-white" />
-                  </div>
-                  <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                    Saved!
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Floating thickness slider — hides while drawing */}
-            <AnimatePresence>
-              {!currentStrokeActive && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.12 }}
-                  className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2"
-                >
-                  <div className="flex items-center gap-2.5 rounded-2xl border border-gray-200 bg-white/95 px-4 py-2 shadow-xl backdrop-blur-md dark:border-gray-700 dark:bg-gray-800/95">
-                    <motion.div
-                      className="shrink-0 rounded-full"
-                      style={{ backgroundColor: penColor }}
-                      animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    />
-                    <input
-                      type="range"
-                      min="1"
-                      max="20"
-                      value={penThickness}
-                      onChange={(e) => setPenThickness(Number(e.target.value))}
-                      className="thickness-slider h-2 w-28 cursor-pointer appearance-none rounded-full sm:w-40"
-                      style={{
-                        background: `linear-gradient(to right, ${penColor} 0%, ${penColor} ${((penThickness - 1) / 19) * 100}%, #e5e7eb ${((penThickness - 1) / 19) * 100}%, #e5e7eb 100%)`,
-                      }}
-                      aria-label="Pen thickness"
-                    />
-                    <span className="w-7 shrink-0 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {penThickness}
-                    </span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Zoom button — top right of canvas */}
+            <motion.button
+              onClick={() => setIsFullscreen(true)}
+              className="pointer-events-auto absolute right-2 top-2 z-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white/90 p-2 text-gray-600 shadow-sm backdrop-blur-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800/90 dark:text-gray-400 dark:hover:bg-gray-700"
+              aria-label="Enter fullscreen"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Maximize2 size={16} strokeWidth={2} />
+            </motion.button>
           </div>
         </div>
       </div>
