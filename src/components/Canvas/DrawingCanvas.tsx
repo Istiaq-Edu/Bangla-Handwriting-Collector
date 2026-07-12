@@ -368,8 +368,6 @@ export default function DrawingCanvas({
           onClear={handleClear}
           onRotate={handleRotate}
           canRotate={strokeCount > 0}
-          penThickness={penThickness}
-          onPenThicknessChange={setPenThickness}
           penColor={penColor}
           onPenColorChange={setPenColor}
           canRedo={redoCount > 0}
@@ -438,6 +436,40 @@ export default function DrawingCanvas({
                   <span className="text-lg font-semibold text-green-600 dark:text-green-400">
                     Saved!
                   </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Floating thickness slider — hides while drawing */}
+            <AnimatePresence>
+              {!currentStrokeActive && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-3"
+                >
+                  <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/90 px-3 py-1.5 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/90">
+                    <motion.div
+                      className="shrink-0 rounded-full"
+                      style={{ backgroundColor: penColor }}
+                      animate={{ width: Math.max(4, penThickness), height: Math.max(4, penThickness) }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    />
+                    <input
+                      type="range"
+                      min="1"
+                      max="20"
+                      value={penThickness}
+                      onChange={(e) => setPenThickness(Number(e.target.value))}
+                      className="h-1.5 w-24 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700 sm:w-32"
+                      aria-label="Pen thickness"
+                    />
+                    <span className="w-6 shrink-0 text-center text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {penThickness}
+                    </span>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
