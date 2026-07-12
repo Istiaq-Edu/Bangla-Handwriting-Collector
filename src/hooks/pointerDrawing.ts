@@ -52,8 +52,10 @@ export function createPoint(
 export function startStroke(
   state: PointerDrawingState,
   point: Point,
+  thickness: number,
+  color: string,
 ): PointerDrawingState {
-  const newStroke: Stroke = { points: [point] }
+  const newStroke: Stroke = { points: [point], thickness, color }
   return {
     ...state,
     isDrawing: true,
@@ -87,6 +89,8 @@ export function continueStroke(
 
   const updatedStroke: Stroke = {
     points: [...pts, smoothedPoint],
+    thickness: state.currentStroke.thickness,
+    color: state.currentStroke.color,
   }
   return {
     ...state,
@@ -183,10 +187,12 @@ export function rotateStrokes90CW(
 
   const rotatedStrokes = state.strokes.map((stroke) => ({
     points: stroke.points.map(rotatePoint),
+    thickness: stroke.thickness,
+    color: stroke.color,
   }))
 
   const rotatedCurrent = state.currentStroke
-    ? { points: state.currentStroke.points.map(rotatePoint) }
+    ? { points: state.currentStroke.points.map(rotatePoint), thickness: state.currentStroke.thickness, color: state.currentStroke.color }
     : null
 
   return {

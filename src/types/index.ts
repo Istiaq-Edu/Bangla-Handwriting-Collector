@@ -7,6 +7,8 @@ export interface Point {
 
 export interface Stroke {
   points: Point[]
+  thickness: number
+  color: string
 }
 
 export interface Sample {

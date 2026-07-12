@@ -37,13 +37,19 @@ export function usePointerDrawing(
   renderCallback: () => void,
   deviceType: 'mouse' | 'touch' | 'pen',
   isErasing: boolean,
+  penThickness: number,
+  penColor: string,
 ): UsePointerDrawingReturn {
   const stateRef = useRef<PointerDrawingState>(createPointerDrawingState(deviceType))
   const renderCallbackRef = useRef(renderCallback)
   const isErasingRef = useRef(isErasing)
+  const penThicknessRef = useRef(penThickness)
+  const penColorRef = useRef(penColor)
 
   renderCallbackRef.current = renderCallback
   isErasingRef.current = isErasing
+  penThicknessRef.current = penThickness
+  penColorRef.current = penColor
 
   const getState = useCallback(() => stateRef.current, [])
 
@@ -67,7 +73,7 @@ export function usePointerDrawing(
         stateRef.current = { ...stateRef.current, deviceType: detectedType }
       }
       const point = createPoint(e, canvas, Date.now())
-      setState((prev) => startStroke(prev, point))
+      setState((prev) => startStroke(prev, point, penThicknessRef.current, penColorRef.current))
     },
     [setState],
   )

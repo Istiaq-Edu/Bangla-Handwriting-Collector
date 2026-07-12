@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Undo2, Redo2, Eraser, Trash2, RotateCw, ChevronDown,
+  Undo2, Redo2, Eraser, Trash2, RotateCw,
 } from 'lucide-react'
 
 interface ToolbarProps {
@@ -68,68 +67,20 @@ function Divider({ vertical }: { vertical?: boolean }) {
   )
 }
 
-function ColorPicker({ penColor, onPenColorChange }: { penColor: string; onPenColorChange: (c: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [])
-
+function ColorSwatches({ penColor, onPenColorChange, layout }: { penColor: string; onPenColorChange: (c: string) => void; layout: 'vertical' | 'horizontal' }) {
   return (
-    <div ref={ref} className="relative shrink-0">
-      <motion.button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 rounded-lg border border-gray-200 p-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-        aria-label="Color picker"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        <div className="h-5 w-5 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: penColor }} />
-        <ChevronDown size={12} strokeWidth={2} className="text-gray-400" />
-      </motion.button>
-
-      {open && (
-        <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}>
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.85 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="rounded-2xl border border-gray-200 bg-white p-3 shadow-2xl dark:border-gray-700 dark:bg-gray-800"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Pick color</div>
-              <div className="grid grid-cols-2 gap-2">
-                {COLORS.map((c) => (
-                  <motion.button
-                    key={c.value}
-                    onClick={() => {
-                      onPenColorChange(c.value)
-                      setOpen(false)
-                    }}
-                    className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      penColor === c.value ? 'ring-2 ring-blue-500 border-transparent' : 'border-gray-200 dark:border-gray-600'
-                    }`}
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.92 }}
-                  >
-                    <div className="h-8 w-8 rounded-full border-2 border-white shadow-md dark:border-gray-600" style={{ backgroundColor: c.value }} />
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{c.label}</span>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      )}
+    <div className={layout === 'vertical' ? 'flex flex-col items-center gap-1.5' : 'flex items-center gap-1'}>
+      {COLORS.map((c) => (
+        <motion.button
+          key={c.value}
+          onClick={() => onPenColorChange(c.value)}
+          className={`h-6 w-6 shrink-0 rounded-full border-2 transition-all ${penColor === c.value ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-800 scale-110 border-transparent' : 'border-gray-300 dark:border-gray-600'}`}
+          style={{ backgroundColor: c.value }}
+          aria-label={c.label}
+          whileHover={{ scale: 1.25 }}
+          whileTap={{ scale: 0.8 }}
+        />
+      ))}
     </div>
   )
 }
@@ -172,7 +123,7 @@ export default function Toolbar({
 
         <Divider />
 
-        <ColorPicker penColor={penColor} onPenColorChange={onPenColorChange} />
+        <ColorSwatches penColor={penColor} onPenColorChange={onPenColorChange} layout="vertical" />
       </div>
 
       {/* ═══ Mobile: horizontal bar ═══ */}
@@ -198,7 +149,7 @@ export default function Toolbar({
 
         <Divider vertical />
 
-        <ColorPicker penColor={penColor} onPenColorChange={onPenColorChange} />
+        <ColorSwatches penColor={penColor} onPenColorChange={onPenColorChange} layout="horizontal" />
       </div>
     </>
   )

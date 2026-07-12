@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ArrowRight, Check } from 'lucide-react'
+import { ChevronLeft, ArrowRight, CircleCheck } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { usePointerDrawing } from '../../hooks/usePointerDrawing'
 import { renderStrokes, setupCanvas, canvasToPng } from '../../utils/canvasUtils'
@@ -67,10 +67,10 @@ export default function DrawingCanvas({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     const state = stateRef.current
-    renderStrokes(ctx, state.strokes, state.currentStroke, penThicknessRef.current, isErasingRef.current, penColorRef.current)
+    renderStrokes(ctx, state.strokes, state.currentStroke, isErasingRef.current)
   }, [])
 
-  const drawing = usePointerDrawing(render, 'mouse', isErasing)
+  const drawing = usePointerDrawing(render, 'mouse', isErasing, penThickness, penColor)
 
   const renderOverlay = useCallback(() => {
     const overlay = overlayRef.current
@@ -146,9 +146,14 @@ export default function DrawingCanvas({
   useEffect(() => {
     if (initialStrokes && initialStrokes.length > 0) {
       const stateRef = drawingRef.current.stateRef
+      const normalizedStrokes = initialStrokes.map(s => ({
+        points: s.points,
+        thickness: s.thickness ?? 4,
+        color: s.color ?? '#000000',
+      }))
       stateRef.current = {
         ...stateRef.current,
-        strokes: initialStrokes,
+        strokes: normalizedStrokes,
         redoStack: [],
         isDrawing: false,
         currentStroke: null,
@@ -429,7 +434,7 @@ export default function DrawingCanvas({
                   transition={{ duration: 0.25, ease: 'easeOut' }}
                 >
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 shadow-lg">
-                    <Check size={36} strokeWidth={3} className="text-white" />
+                    <CircleCheck size={36} strokeWidth={3} className="text-white" />
                   </div>
                   <span className="text-lg font-semibold text-green-600 dark:text-green-400">
                     Saved!
@@ -442,17 +447,17 @@ export default function DrawingCanvas({
             <AnimatePresence>
               {!currentStrokeActive && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-3"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.12 }}
+                  className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2"
                 >
-                  <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/90 px-3 py-1.5 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/90">
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-gray-200 bg-white/95 px-4 py-2 shadow-xl backdrop-blur-md dark:border-gray-700 dark:bg-gray-800/95">
                     <motion.div
                       className="shrink-0 rounded-full"
                       style={{ backgroundColor: penColor }}
-                      animate={{ width: Math.max(4, penThickness), height: Math.max(4, penThickness) }}
+                      animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
                       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     />
                     <input
@@ -461,10 +466,13 @@ export default function DrawingCanvas({
                       max="20"
                       value={penThickness}
                       onChange={(e) => setPenThickness(Number(e.target.value))}
-                      className="h-1.5 w-24 cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700 sm:w-32"
+                      className="thickness-slider h-2 w-28 cursor-pointer appearance-none rounded-full sm:w-40"
+                      style={{
+                        background: `linear-gradient(to right, ${penColor} 0%, ${penColor} ${((penThickness - 1) / 19) * 100}%, #e5e7eb ${((penThickness - 1) / 19) * 100}%, #e5e7eb 100%)`,
+                      }}
                       aria-label="Pen thickness"
                     />
-                    <span className="w-6 shrink-0 text-center text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="w-7 shrink-0 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
                       {penThickness}
                     </span>
                   </div>
@@ -502,7 +510,7 @@ export default function DrawingCanvas({
           whileHover={{ scale: canSubmit ? 1.02 : 1 }}
           whileTap={{ scale: canSubmit ? 0.96 : 1 }}
         >
-          <Check size={18} strokeWidth={2.5} />
+          <CircleCheck size={18} strokeWidth={2.5} />
           {submitLabel ?? 'OK'}
         </motion.button>
       </div>
