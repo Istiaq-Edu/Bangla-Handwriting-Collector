@@ -28,3 +28,6 @@ npm-debug.log*
 
 # Agent skills (optional — comment out if you want to keep them)
 .agents/
+
+.vercel
+.env*

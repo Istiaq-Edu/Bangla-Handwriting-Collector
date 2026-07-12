@@ -1,7 +1,12 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Download, Share2, Copy, Check, Mail, MessageCircle,
+  Send, FileArchive, ChevronUp, AlertCircle,
+} from 'lucide-react'
 import { Layout } from '../Layout'
 import { getAllSamples } from '../../db/database'
-import { buildZip, shareZip, downloadBlob } from '../../utils/zipBuilder'
+import { buildZip, downloadBlob } from '../../utils/zipBuilder'
 import { getVariantLabel } from '../../utils/imageProcessing'
 import { useStore } from '../../store/useStore'
 import type { ExportFormat, ImageVariant, ColorScheme, Sample } from '../../types'
@@ -15,17 +20,51 @@ const FORMATS: { value: ExportFormat; label: string; description: string }[] = [
 
 const VARIANTS: ImageVariant[] = ['raw', 'cropped', 'centered', '28x28', '64x64', '128x128']
 
+const MAX_SHARE_SIZE = 10 * 1024 * 1024
+
+interface ShareCapabilities {
+  hasShare: boolean
+  canShareFiles: boolean
+  hasClipboard: boolean
+  canDownload: boolean
+}
+
+function detectShareCapabilities(zipFile?: File): ShareCapabilities {
+  const hasShare = typeof navigator.share === 'function'
+  let canShareFiles = false
+  if (hasShare && typeof navigator.canShare === 'function' && zipFile) {
+    try {
+      canShareFiles = navigator.canShare({ files: [zipFile] })
+    } catch {
+      canShareFiles = false
+    }
+  }
+  const hasClipboard = !!navigator.clipboard && !!navigator.clipboard.writeText
+  return { hasShare, canShareFiles, hasClipboard, canDownload: true }
+}
+
 export default function ExportView() {
   const [samples, setSamples] = useState<Sample[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' })
+  const [zipBlob, setZipBlob] = useState<Blob | null>(null)
+  const [zipFile, setZipFile] = useState<File | null>(null)
+  const [showShareSheet, setShowShareSheet] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [capabilities, setCapabilities] = useState<ShareCapabilities>({
+    hasShare: false, canShareFiles: false, hasClipboard: false, canDownload: true,
+  })
 
   const [formats, setFormats] = useState<Set<ExportFormat>>(new Set(['folder-csv']))
   const [variants, setVariants] = useState<Set<ImageVariant>>(new Set(['raw']))
   const [colorScheme, setColorScheme] = useState<ColorScheme>('black-on-white')
 
   const sessionId = useStore((s) => s.sessionId)
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  const fileName = `bangla-handwriting-${new Date().toISOString().slice(0, 10)}-${sessionId.slice(0, 8)}.zip`
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -38,6 +77,119 @@ export default function ExportView() {
     refresh()
   }, [refresh])
 
+  const isOverShareLimit = zipBlob ? zipBlob.size > MAX_SHARE_SIZE : false
+
+  const generateZip = useCallback(async (): Promise<Blob | null> => {
+    if (samples.length === 0 || formats.size === 0 || variants.size === 0) return null
+
+    setExporting(true)
+    setShareError(null)
+    setProgress({ current: 0, total: samples.length, label: 'Starting...' })
+
+    try {
+      const blob = await buildZip(samples, {
+        formats: Array.from(formats),
+        imageVariants: Array.from(variants),
+        colorScheme,
+        onProgress: (current, total, label) => {
+          setProgress({ current, total, label })
+        },
+      })
+      return blob
+    } catch (err) {
+      console.error('Export failed:', err)
+      setShareError('Failed to generate ZIP. Try reducing the number of samples or variants.')
+      return null
+    } finally {
+      setExporting(false)
+    }
+  }, [samples, formats, variants, colorScheme])
+
+  const handleDownload = useCallback(async () => {
+    let blob = zipBlob
+    if (!blob) {
+      blob = await generateZip()
+      if (!blob) return
+    }
+    downloadBlob(blob, fileName)
+  }, [zipBlob, generateZip, fileName])
+
+  const handleShareClick = useCallback(async () => {
+    let blob = zipBlob
+    if (!blob) {
+      blob = await generateZip()
+      if (!blob) return
+    }
+
+    const file = new File([blob], fileName, { type: 'application/zip' })
+    setZipBlob(blob)
+    setZipFile(file)
+
+    const caps = detectShareCapabilities(file)
+    setCapabilities(caps)
+
+    if (caps.canShareFiles && blob.size <= MAX_SHARE_SIZE) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Bangla Handwriting Dataset',
+          text: `${samples.length} handwriting samples collected via Bangla Handwriting Collector`,
+        })
+        return
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+      }
+    }
+
+    setShowShareSheet(true)
+  }, [zipBlob, generateZip, fileName, samples.length])
+
+  const handleNativeShareText = useCallback(async () => {
+    if (!navigator.share) return
+    try {
+      await navigator.share({
+        title: 'Bangla Handwriting Dataset',
+        text: `I collected ${samples.length} Bangla handwriting samples. Download the ZIP and share it with me!`,
+      })
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+    }
+  }, [samples.length])
+
+  const handleCopyDescription = useCallback(() => {
+    const text = `Bangla Handwriting Dataset — ${samples.length} samples (${zipBlob ? (zipBlob.size / 1024 / 1024).toFixed(1) : '?'} MB). Collected via Bangla Handwriting Collector.`
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {})
+  }, [samples.length, zipBlob])
+
+  const handleEmailShare = useCallback(() => {
+    const subject = encodeURIComponent('Bangla Handwriting Dataset')
+    const body = encodeURIComponent(
+      `Hi,\n\nI've collected ${samples.length} Bangla handwriting samples using Bangla Handwriting Collector.\n` +
+      `The dataset ZIP is attached separately (download first, then attach to this email).\n\n` +
+      `File: ${fileName}\n` +
+      `Size: ${zipBlob ? (zipBlob.size / 1024 / 1024).toFixed(1) : '?'} MB\n\n` +
+      `Thanks!`
+    )
+    window.location.href = `mailto:?subject=${subject}&body=${body}`
+  }, [samples.length, fileName, zipBlob])
+
+  const handleWhatsAppShare = useCallback(() => {
+    const text = encodeURIComponent(
+      `Bangla Handwriting Dataset — ${samples.length} samples. Download the ZIP file I'm sharing separately.`
+    )
+    window.open(`https://wa.me/?text=${text}`, '_blank')
+  }, [samples.length])
+
+  const handleTelegramShare = useCallback(() => {
+    const text = encodeURIComponent(
+      `Bangla Handwriting Dataset — ${samples.length} samples. Download the ZIP file I'm sharing separately.`
+    )
+    window.open(`https://t.me/share/url?url=${encodeURIComponent('https://bangla-handwriting-collector.vercel.app')}&text=${text}`, '_blank')
+  }, [samples.length])
+
   const toggleFormat = (f: ExportFormat) => {
     setFormats((prev) => {
       const next = new Set(prev)
@@ -45,6 +197,8 @@ export default function ExportView() {
       else next.add(f)
       return next
     })
+    setZipBlob(null)
+    setZipFile(null)
   }
 
   const toggleVariant = (v: ImageVariant) => {
@@ -54,64 +208,9 @@ export default function ExportView() {
       else next.add(v)
       return next
     })
+    setZipBlob(null)
+    setZipFile(null)
   }
-
-  const handleExport = useCallback(async () => {
-    if (samples.length === 0 || formats.size === 0 || variants.size === 0) return
-
-    setExporting(true)
-    setProgress({ current: 0, total: samples.length, label: 'Starting...' })
-
-    try {
-      const zipBlob = await buildZip(samples, {
-        formats: Array.from(formats),
-        imageVariants: Array.from(variants),
-        colorScheme,
-        onProgress: (current, total, label) => {
-          setProgress({ current, total, label })
-        },
-      })
-
-      const date = new Date().toISOString().slice(0, 10)
-      const fileName = `bangla-handwriting-${date}-${sessionId.slice(0, 8)}.zip`
-
-      downloadBlob(zipBlob, fileName)
-    } catch (err) {
-      console.error('Export failed:', err)
-    } finally {
-      setExporting(false)
-    }
-  }, [samples, formats, variants, colorScheme, sessionId])
-
-  const handleShare = useCallback(async () => {
-    if (samples.length === 0 || formats.size === 0 || variants.size === 0) return
-
-    setExporting(true)
-    setProgress({ current: 0, total: samples.length, label: 'Starting...' })
-
-    try {
-      const zipBlob = await buildZip(samples, {
-        formats: Array.from(formats),
-        imageVariants: Array.from(variants),
-        colorScheme,
-        onProgress: (current, total, label) => {
-          setProgress({ current, total, label })
-        },
-      })
-
-      const date = new Date().toISOString().slice(0, 10)
-      const fileName = `bangla-handwriting-${date}.zip`
-
-      const shared = await shareZip(zipBlob, fileName)
-      if (!shared) {
-        downloadBlob(zipBlob, fileName)
-      }
-    } catch (err) {
-      console.error('Share failed:', err)
-    } finally {
-      setExporting(false)
-    }
-  }, [samples, formats, variants, colorScheme])
 
   if (loading) {
     return (
@@ -127,7 +226,7 @@ export default function ExportView() {
     return (
       <Layout>
         <div className="flex h-full flex-col items-center justify-center text-gray-500">
-          <span className="mb-2 text-4xl">💾</span>
+          <FileArchive size={48} strokeWidth={1.5} className="mb-3 text-gray-300 dark:text-gray-600" />
           <p>No samples to export yet.</p>
         </div>
       </Layout>
@@ -138,9 +237,26 @@ export default function ExportView() {
     <Layout>
       <div className="h-full overflow-y-auto p-4">
         <div className="mx-auto max-w-md space-y-5">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {samples.length} samples ready for export
-          </div>
+          {/* Summary card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 dark:border-gray-700 dark:from-blue-900/20 dark:to-gray-800"
+          >
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-blue-600 p-2.5 text-white">
+                <FileArchive size={24} strokeWidth={2} />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {samples.length}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  samples ready for export
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
           {/* Formats */}
           <section>
@@ -161,7 +277,7 @@ export default function ExportView() {
                     type="checkbox"
                     checked={formats.has(f.value)}
                     onChange={() => toggleFormat(f.value)}
-                    className="mt-0.5"
+                    className="mt-0.5 accent-blue-600"
                   />
                   <div>
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -195,6 +311,7 @@ export default function ExportView() {
                     type="checkbox"
                     checked={variants.has(v)}
                     onChange={() => toggleVariant(v)}
+                    className="accent-blue-600"
                   />
                   <span className="text-xs text-gray-700 dark:text-gray-300">
                     {getVariantLabel(v)}
@@ -213,7 +330,10 @@ export default function ExportView() {
               {(['black-on-white', 'white-on-black'] as ColorScheme[]).map((cs) => (
                 <button
                   key={cs}
-                  onClick={() => setColorScheme(cs)}
+                  onClick={() => {
+                    setColorScheme(cs)
+                    setZipBlob(null)
+                  }}
                   className={`flex-1 rounded-lg border p-3 text-sm transition-colors ${
                     colorScheme === cs
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -226,45 +346,304 @@ export default function ExportView() {
             </div>
           </section>
 
+          {/* Error */}
+          {shareError && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+            >
+              <AlertCircle size={18} strokeWidth={2} className="shrink-0" />
+              {shareError}
+            </motion.div>
+          )}
+
           {/* Progress */}
           {exporting && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
-              <div className="text-sm text-blue-700 dark:text-blue-300">
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20"
+            >
+              <div className="mb-1 text-sm text-blue-700 dark:text-blue-300">
                 {progress.label}
               </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-blue-200 dark:bg-blue-800">
-                <div
-                  className="h-full rounded-full bg-blue-600 transition-all"
-                  style={{
-                    width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
-                  }}
+              <div className="h-2 overflow-hidden rounded-full bg-blue-200 dark:bg-blue-800">
+                <motion.div
+                  className="h-full rounded-full bg-blue-600"
+                  animate={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
                 />
               </div>
               <div className="mt-1 text-xs text-blue-600 dark:text-blue-400">
                 {progress.current} / {progress.total}
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {/* Buttons */}
+          {/* ZIP info */}
+          {zipBlob && !exporting && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between rounded-lg border border-green-300 bg-green-50 p-3 text-sm dark:border-green-800 dark:bg-green-900/20"
+            >
+              <span className="text-green-700 dark:text-green-400">
+                ZIP ready: {(zipBlob.size / 1024 / 1024).toFixed(1)} MB
+              </span>
+              {isOverShareLimit && (
+                <span className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                  <AlertCircle size={14} />
+                  Large file — use download
+                </span>
+              )}
+            </motion.div>
+          )}
+
+          {/* Action buttons */}
           <div className="flex gap-2 pb-4">
-            <button
-              onClick={handleExport}
+            <motion.button
+              onClick={handleDownload}
               disabled={exporting || formats.size === 0 || variants.size === 0}
-              className="flex-1 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-700"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-300 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              whileHover={{ scale: exporting ? 1 : 1.02 }}
+              whileTap={{ scale: exporting ? 1 : 0.96 }}
             >
-              {exporting ? 'Exporting...' : 'Download ZIP'}
-            </button>
-            <button
-              onClick={handleShare}
+              <Download size={18} strokeWidth={2} />
+              Download
+            </motion.button>
+            <motion.button
+              onClick={handleShareClick}
               disabled={exporting || formats.size === 0 || variants.size === 0}
-              className="flex-1 rounded-xl border border-blue-600 py-3 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 dark:hover:bg-blue-900/20"
+              className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-700"
+              whileHover={{ scale: exporting ? 1 : 1.02 }}
+              whileTap={{ scale: exporting ? 1 : 0.96 }}
             >
-              Share
-            </button>
+              <Share2 size={18} strokeWidth={2} />
+              Share Dataset
+            </motion.button>
           </div>
         </div>
       </div>
+
+      {/* Share Bottom Sheet */}
+      <AnimatePresence>
+        {showShareSheet && (
+          <ShareSheet
+            onClose={() => setShowShareSheet(false)}
+            capabilities={capabilities}
+            zipFile={zipFile}
+            fileName={fileName}
+            zipSize={zipBlob?.size ?? 0}
+            isOverLimit={isOverShareLimit}
+            onDownload={handleDownload}
+            onNativeShareText={handleNativeShareText}
+            onCopyDescription={handleCopyDescription}
+            onEmail={handleEmailShare}
+            onWhatsApp={handleWhatsAppShare}
+            onTelegram={handleTelegramShare}
+            copied={copied}
+            sampleCount={samples.length}
+            sheetRef={sheetRef}
+          />
+        )}
+      </AnimatePresence>
     </Layout>
+  )
+}
+
+// ── Bottom Sheet Component ──
+interface ShareSheetProps {
+  onClose: () => void
+  capabilities: ShareCapabilities
+  zipFile: File | null
+  fileName: string
+  zipSize: number
+  isOverLimit: boolean
+  onDownload: () => void
+  onNativeShareText: () => void
+  onCopyDescription: () => void
+  onEmail: () => void
+  onWhatsApp: () => void
+  onTelegram: () => void
+  copied: boolean
+  sampleCount: number
+  sheetRef: React.RefObject<HTMLDivElement | null>
+}
+
+function ShareSheet({
+  onClose, capabilities, zipFile, fileName, zipSize, isOverLimit,
+  onDownload, onNativeShareText, onCopyDescription, onEmail,
+  onWhatsApp, onTelegram, copied, sampleCount,
+}: ShareSheetProps) {
+  const sizeMB = (zipSize / 1024 / 1024).toFixed(1)
+  const sizeKB = (zipSize / 1024).toFixed(0)
+
+  const shareOptions: { id: string; label: string; icon: React.ReactNode; onClick: () => void; available: boolean; color: string }[] = [
+    {
+      id: 'native-files',
+      label: 'Share ZIP',
+      icon: <Share2 size={22} strokeWidth={2} />,
+      onClick: async () => {
+        if (zipFile && typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
+          try {
+            await navigator.share({ files: [zipFile], title: 'Bangla Handwriting Dataset', text: `${sampleCount} handwriting samples` })
+          } catch (err) {
+            if (err instanceof Error && err.name !== 'AbortError') {
+              onDownload()
+            }
+          }
+        }
+        onClose()
+      },
+      available: capabilities.canShareFiles && !isOverLimit,
+      color: 'bg-blue-500',
+    },
+    {
+      id: 'native-text',
+      label: 'Share text',
+      icon: <MessageCircle size={22} strokeWidth={2} />,
+      onClick: () => { onNativeShareText(); onClose() },
+      available: capabilities.hasShare && !capabilities.canShareFiles,
+      color: 'bg-green-500',
+    },
+    {
+      id: 'download',
+      label: 'Download',
+      icon: <Download size={22} strokeWidth={2} />,
+      onClick: () => { onDownload(); onClose() },
+      available: true,
+      color: 'bg-gray-600',
+    },
+    {
+      id: 'copy',
+      label: copied ? 'Copied!' : 'Copy info',
+      icon: copied ? <Check size={22} strokeWidth={2} /> : <Copy size={22} strokeWidth={2} />,
+      onClick: onCopyDescription,
+      available: capabilities.hasClipboard,
+      color: 'bg-purple-500',
+    },
+    {
+      id: 'whatsapp',
+      label: 'WhatsApp',
+      icon: <MessageCircle size={22} strokeWidth={2} />,
+      onClick: () => { onWhatsApp(); onClose() },
+      available: true,
+      color: 'bg-green-500',
+    },
+    {
+      id: 'telegram',
+      label: 'Telegram',
+      icon: <Send size={22} strokeWidth={2} />,
+      onClick: () => { onTelegram(); onClose() },
+      available: true,
+      color: 'bg-sky-500',
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      icon: <Mail size={22} strokeWidth={2} />,
+      onClick: () => { onEmail(); onClose() },
+      available: true,
+      color: 'bg-orange-500',
+    },
+  ]
+
+  const visibleOptions = shareOptions.filter((o) => o.available)
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/50"
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-white dark:bg-gray-900"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3">
+          <div className="h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" />
+        </div>
+
+        <div className="px-4 pb-4">
+          {/* Header */}
+          <div className="mb-3 mt-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileArchive size={20} strokeWidth={2} className="text-blue-600 dark:text-blue-400" />
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                  Share Dataset
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {sampleCount} samples · {zipSize > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <ChevronUp size={20} />
+            </button>
+          </div>
+
+          {/* Large file warning */}
+          {isOverLimit && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-orange-300 bg-orange-50 p-2.5 text-xs text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+              <AlertCircle size={16} className="shrink-0" />
+              File is larger than 10 MB — native file sharing may not work on some devices. Download is recommended.
+            </div>
+          )}
+
+          {/* Share options grid */}
+          <div className="grid grid-cols-4 gap-3">
+            {visibleOptions.map((option) => (
+              <motion.button
+                key={option.id}
+                onClick={option.onClick}
+                className="flex flex-col items-center gap-1.5"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <div
+                  className={`flex h-14 w-14 items-center justify-center rounded-2xl ${option.color} text-white shadow-md`}
+                >
+                  {option.icon}
+                </div>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {option.label}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+
+          {/* File name */}
+          <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+              {fileName}
+            </p>
+          </div>
+
+          {/* Cancel */}
+          <motion.button
+            onClick={onClose}
+            className="mt-3 w-full rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+            whileTap={{ scale: 0.97 }}
+          >
+            Cancel
+          </motion.button>
+        </div>
+      </motion.div>
+    </>
   )
 }
