@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Undo2, Redo2, Eraser, Trash2, RotateCw, ChevronDown, Plus, Minus,
+  Undo2, Redo2, Eraser, Trash2, RotateCw, ChevronDown,
 } from 'lucide-react'
 
 interface ToolbarProps {
   penColor: string
-  penThickness: number
   isErasing: boolean
   onToggleEraser: () => void
   onUndo: () => void
@@ -15,7 +14,6 @@ interface ToolbarProps {
   onRotate: () => void
   canRotate: boolean
   onPenColorChange: (color: string) => void
-  onPenThicknessChange: (thickness: number) => void
   canUndo: boolean
   canRedo: boolean
 }
@@ -86,28 +84,6 @@ function ColorSwatches({ penColor, onPenColorChange }: { penColor: string; onPen
           whileTap={{ scale: 0.9 }}
         />
       ))}
-    </div>
-  )
-}
-
-function ThicknessStepper({ penThickness, onPenThicknessChange, penColor }: { penThickness: number; onPenThicknessChange: (t: number) => void; penColor: string }) {
-  const up = () => onPenThicknessChange(Math.min(20, penThickness + 1))
-  const down = () => onPenThicknessChange(Math.max(1, penThickness - 1))
-  return (
-    <div className="flex shrink-0 flex-col items-center gap-1 py-1">
-      <ToolButton onClick={up} label="Thicker">
-        <Plus size={18} strokeWidth={2} />
-      </ToolButton>
-      <motion.div
-        className="shrink-0 rounded-full"
-        style={{ backgroundColor: penColor }}
-        animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      />
-      <span className="text-[10px] font-semibold leading-none text-slate-400">{penThickness}</span>
-      <ToolButton onClick={down} label="Thinner">
-        <Minus size={18} strokeWidth={2} />
-      </ToolButton>
     </div>
   )
 }
@@ -214,15 +190,13 @@ export default function Toolbar({
   canRotate,
   penColor,
   onPenColorChange,
-  penThickness,
-  onPenThicknessChange,
   canUndo,
   canRedo,
 }: ToolbarProps) {
   return (
     <>
       {/* ═══ Desktop: vertical sidebar ═══ */}
-      <div className="hidden w-12 flex-col items-center gap-1.5 overflow-y-auto border-r border-slate-700 p-1.5 sm:flex">
+      <div className="hidden w-12 flex-col items-center gap-1.5 border-r border-slate-700 p-1.5 sm:flex">
         <ToolButton onClick={onUndo} disabled={!canUndo} label="Undo">
           <Undo2 size={18} strokeWidth={2} />
         </ToolButton>
@@ -241,8 +215,6 @@ export default function Toolbar({
         <ToolButton onClick={onRotate} disabled={!canRotate} label="Rotate 90°">
           <RotateCw size={18} strokeWidth={2} />
         </ToolButton>
-
-        <ThicknessStepper penThickness={penThickness} onPenThicknessChange={onPenThicknessChange} penColor={penColor} />
 
         <Divider />
 

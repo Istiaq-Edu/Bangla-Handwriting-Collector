@@ -436,75 +436,83 @@ export default function DrawingCanvas({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile: floating thickness slider at bottom — hides while drawing */}
+      <AnimatePresence>
+        {!currentStrokeActive && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.12 }}
+            className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 sm:hidden"
+          >
+            <div className="flex items-center gap-2.5 rounded-2xl border border-slate-700 bg-slate-900/95 px-4 py-2 shadow-xl backdrop-blur-md">
+              <motion.div
+                className="shrink-0 rounded-full"
+                style={{ backgroundColor: penColor }}
+                animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              />
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={penThickness}
+                onChange={(e) => setPenThickness(Number(e.target.value))}
+                className="thickness-slider h-2 w-28 cursor-pointer appearance-none rounded-full"
+                style={{
+                  background: `linear-gradient(to right, ${penColor} 0%, ${penColor} ${((penThickness - 1) / 19) * 100}%, #334155 ${((penThickness - 1) / 19) * 100}%, #334155 100%)`,
+                }}
+                aria-label="Pen thickness"
+              />
+              <span className="w-7 shrink-0 text-center text-sm font-semibold text-slate-300">
+                {penThickness}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop: floating thickness slider on left side — hides while drawing */}
+      <AnimatePresence>
+        {!currentStrokeActive && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.12 }}
+            className="pointer-events-auto absolute left-3 top-1/2 hidden -translate-y-1/2 sm:block"
+          >
+            <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-slate-700 bg-slate-900/95 px-2 py-3 shadow-xl backdrop-blur-md">
+              <motion.div
+                className="shrink-0 rounded-full"
+                style={{ backgroundColor: penColor }}
+                animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              />
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={penThickness}
+                onChange={(e) => setPenThickness(Number(e.target.value))}
+                className="thickness-slider h-28 w-2 cursor-pointer appearance-none rounded-full"
+                style={{
+                  writingMode: 'vertical-lr',
+                  direction: 'rtl',
+                  background: `linear-gradient(to top, ${penColor} 0%, ${penColor} ${((penThickness - 1) / 19) * 100}%, #334155 ${((penThickness - 1) / 19) * 100}%, #334155 100%)`,
+                }}
+                aria-label="Pen thickness"
+              />
+              <span className="shrink-0 text-center text-sm font-semibold text-slate-300">
+                {penThickness}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
-  )
-
-  // ═══════════════════════════════════════
-  // THICKNESS SLIDER COMPONENT (shared)
-  // ═══════════════════════════════════════
-  const thicknessSlider = (
-    <AnimatePresence>
-      {!currentStrokeActive && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.12 }}
-        >
-          {/* Mobile: horizontal */}
-          <div className="flex items-center gap-2.5 rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-2 shadow-xl backdrop-blur-md sm:hidden">
-            <motion.div
-              className="shrink-0 rounded-full"
-              style={{ backgroundColor: penColor }}
-              animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            />
-            <input
-              type="range"
-              min="1"
-              max="20"
-              value={penThickness}
-              onChange={(e) => setPenThickness(Number(e.target.value))}
-              className="thickness-slider h-2 w-28 cursor-pointer appearance-none rounded-full"
-              style={{
-                background: `linear-gradient(to right, ${penColor} 0%, ${penColor} ${((penThickness - 1) / 19) * 100}%, #334155 ${((penThickness - 1) / 19) * 100}%, #334155 100%)`,
-              }}
-              aria-label="Pen thickness"
-            />
-            <span className="w-7 shrink-0 text-center text-sm font-semibold text-slate-300">
-              {penThickness}
-            </span>
-          </div>
-
-          {/* Desktop: vertical */}
-          <div className="hidden flex-col items-center gap-2.5 rounded-2xl border border-slate-700 bg-slate-900/80 px-2 py-3 shadow-xl backdrop-blur-md sm:flex">
-            <motion.div
-              className="shrink-0 rounded-full"
-              style={{ backgroundColor: penColor }}
-              animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            />
-            <input
-              type="range"
-              min="1"
-              max="20"
-              value={penThickness}
-              onChange={(e) => setPenThickness(Number(e.target.value))}
-              className="thickness-slider h-28 w-2 cursor-pointer appearance-none rounded-full"
-              style={{
-                writingMode: 'vertical-lr',
-                direction: 'rtl',
-                background: `linear-gradient(to top, ${penColor} 0%, ${penColor} ${((penThickness - 1) / 19) * 100}%, #334155 ${((penThickness - 1) / 19) * 100}%, #334155 100%)`,
-              }}
-              aria-label="Pen thickness"
-            />
-            <span className="shrink-0 text-center text-sm font-semibold text-slate-300">
-              {penThickness}
-            </span>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   )
 
   // ── FULLSCREEN / ZOOM MODE ──
@@ -535,8 +543,6 @@ export default function DrawingCanvas({
               canRotate={strokeCount > 0}
               penColor={penColor}
               onPenColorChange={setPenColor}
-              penThickness={penThickness}
-              onPenThicknessChange={setPenThickness}
               canRedo={redoCount > 0}
               canUndo={strokeCount > 0}
             />
@@ -573,18 +579,10 @@ export default function DrawingCanvas({
           </div>
         </div>
 
-        {/* Slider (left) + canvas — fills ALL remaining space */}
-        <div className="flex min-h-0 flex-1">
-          {/* Pen thickness slider */}
-          <div className="flex items-center justify-center border-r border-slate-800 px-2 py-1.5">
-            {thicknessSlider}
-          </div>
-
-          {/* Canvas */}
-          <div ref={containerRef} className="flex min-h-0 flex-1 items-center justify-center p-2">
-            <div className="relative h-full w-full max-h-full max-w-full overflow-hidden">
-              {canvasContent}
-            </div>
+        {/* Canvas — fills ALL remaining space */}
+        <div ref={containerRef} className="flex min-h-0 flex-1 items-center justify-center p-2">
+          <div className="relative h-full w-full max-h-full max-w-full overflow-hidden">
+            {canvasContent}
           </div>
         </div>
       </div>
@@ -592,7 +590,7 @@ export default function DrawingCanvas({
   }
 
   // ── NORMAL MODE ──
-    return (
+  return (
     <div className="flex h-full flex-col">
       {/* Canvas + Toolbar */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
@@ -606,41 +604,31 @@ export default function DrawingCanvas({
           canRotate={strokeCount > 0}
           penColor={penColor}
           onPenColorChange={setPenColor}
-          penThickness={penThickness}
-          onPenThicknessChange={setPenThickness}
           canRedo={redoCount > 0}
           canUndo={strokeCount > 0}
         />
 
-        {/* Right column: slider + canvas */}
-        <div className="flex min-h-0 flex-1 flex-col sm:order-2 sm:flex-row">
-          {/* Pen thickness slider — top on mobile, left on desktop */}
-          <div className="flex items-center justify-center border-b border-slate-800 px-2 py-1.5 sm:border-b-0 sm:border-r">
-            {thicknessSlider}
-          </div>
+        {/* Canvas — fills all available space */}
+        <div
+          ref={containerRef}
+          className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center p-2 sm:order-2 sm:p-3"
+        >
+          <div className="relative h-full max-h-full max-w-full overflow-hidden">
+            {canvasContent}
 
-          {/* Canvas */}
-          <div
-            ref={containerRef}
-            className="relative flex min-h-0 flex-1 items-center justify-center p-2 sm:p-3"
-          >
-            <div className="relative h-full max-h-full max-w-full overflow-hidden">
-              {canvasContent}
-
-              {/* Zoom button */}
-              <motion.button
-                onClick={() => setIsFullscreen(true)}
-                className="pointer-events-auto absolute right-2 top-2 z-10 flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/90 p-2 text-slate-400 shadow-sm backdrop-blur-sm hover:bg-slate-800/50"
-                aria-label="Enter fullscreen"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <Maximize2 size={16} strokeWidth={2} />
-              </motion.button>
+            {/* Zoom button — top right of canvas */}
+            <motion.button
+              onClick={() => setIsFullscreen(true)}
+              className="pointer-events-auto absolute right-2 top-2 z-10 flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/90 p-2 text-slate-400 shadow-sm backdrop-blur-sm hover:bg-slate-800/50"
+              aria-label="Enter fullscreen"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Maximize2 size={16} strokeWidth={2} />
+            </motion.button>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Navigation bar */}
       <div className="flex gap-2 px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
