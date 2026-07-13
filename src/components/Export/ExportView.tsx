@@ -21,27 +21,6 @@ const VARIANTS: ImageVariant[] = ['raw', 'cropped', 'centered', '28x28', '64x64'
 
 const MAX_SHARE_SIZE = 10 * 1024 * 1024
 
-interface ShareCapabilities {
-  hasShare: boolean
-  canShareFiles: boolean
-  hasClipboard: boolean
-  canDownload: boolean
-}
-
-function detectShareCapabilities(zipFile?: File): ShareCapabilities {
-  const hasShare = typeof navigator.share === 'function'
-  let canShareFiles = false
-  if (hasShare && typeof navigator.canShare === 'function' && zipFile) {
-    try {
-      canShareFiles = navigator.canShare({ files: [zipFile] })
-    } catch {
-      canShareFiles = false
-    }
-  }
-  const hasClipboard = !!navigator.clipboard && !!navigator.clipboard.writeText
-  return { hasShare, canShareFiles, hasClipboard, canDownload: true }
-}
-
 export default function ExportView() {
   const [samples, setSamples] = useState<Sample[]>([])
   const [loading, setLoading] = useState(true)
@@ -97,6 +76,17 @@ export default function ExportView() {
     }
   }, [samples, formats, variants, colorScheme])
 
+  // Pre-generate ZIP whenever settings change (so share is instant — preserves user gesture)
+  useEffect(() => {
+    if (samples.length === 0 || formats.size === 0 || variants.size === 0) return
+    let cancelled = false
+    ;(async () => {
+      const blob = await generateZip()
+      if (!cancelled && blob) setZipBlob(blob)
+    })()
+    return () => { cancelled = true }
+  }, [generateZip])
+
   const handleDownload = useCallback(async () => {
     let blob = zipBlob
     if (!blob) {
@@ -106,33 +96,27 @@ export default function ExportView() {
     downloadBlob(blob, fileName)
   }, [zipBlob, generateZip, fileName])
 
+  // IMPORTANT: No await before navigator.share() — preserves user gesture context
   const handleShareClick = useCallback(async () => {
-    let blob = zipBlob
-    if (!blob) {
-      blob = await generateZip()
-      if (!blob) return
+    if (!zipBlob) {
+      setShareError('ZIP is still being prepared. Please wait a moment.')
+      return
     }
 
-    const file = new File([blob], fileName, { type: 'application/zip' })
-    setZipBlob(blob)
+    const file = new File([zipBlob], fileName, { type: 'application/zip' })
 
-    const caps = detectShareCapabilities(file)
-
-    if (caps.canShareFiles && blob.size <= MAX_SHARE_SIZE) {
+    // Try file share first (no pre-checks — just try and catch)
+    if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({
-          files: [file],
-          title: 'Bangla Handwriting Dataset',
-          text: `${samples.length} handwriting samples collected via Bangla Handwriting Collector`,
-        })
-        return
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return
-      }
-    }
-
-    if (caps.hasShare) {
-      try {
+        if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] }) && zipBlob.size <= MAX_SHARE_SIZE) {
+          await navigator.share({
+            files: [file],
+            title: 'Bangla Handwriting Dataset',
+            text: `${samples.length} handwriting samples collected via Bangla Handwriting Collector`,
+          })
+          return
+        }
+        // Fallback: text-only share
         await navigator.share({
           title: 'Bangla Handwriting Dataset',
           text: `I collected ${samples.length} Bangla handwriting samples. Download the ZIP from the app.`,
@@ -140,11 +124,12 @@ export default function ExportView() {
         return
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
+        // Fall through to error message
       }
     }
 
     setShareError('Native sharing is not available on this device. Use Download instead.')
-  }, [zipBlob, generateZip, fileName, samples.length])
+  }, [zipBlob, fileName, samples.length])
 
   const toggleFormat = (f: ExportFormat) => {
     setFormats((prev) => {
