@@ -79,6 +79,9 @@ html, body, #root {
 }
 
 .main-scroll {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
 }
 .main-scroll::-webkit-scrollbar {
@@ -104,7 +107,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overscroll-behavior: none;
+  overscroll-behavior-y: contain;
   user-select: none;
   -webkit-user-select: none;
 }

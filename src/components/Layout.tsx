@@ -23,7 +23,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="main-scroll flex-1 overflow-y-auto">{children}</main>
+      <main className="main-scroll flex-1 overflow-y-auto overscroll-y-contain">{children}</main>
 
       {/* Live region for dynamic status announcements (screen readers) */}
       <div aria-live="polite" aria-atomic="true" className="sr-only" id="live-status" />

@@ -105,30 +105,37 @@ export default function ExportView() {
 
     const file = new File([zipBlob], fileName, { type: 'application/zip' })
 
-    // Try file share first (no pre-checks — just try and catch)
-    if (typeof navigator.share === 'function') {
+    if (typeof navigator.share !== 'function') {
+      setShareError('Web Share API is not available. Use Download instead.')
+      return
+    }
+
+    // Try file share first — skip canShare pre-check, just try it
+    if (zipBlob.size <= MAX_SHARE_SIZE) {
       try {
-        if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] }) && zipBlob.size <= MAX_SHARE_SIZE) {
-          await navigator.share({
-            files: [file],
-            title: 'Bangla Handwriting Dataset',
-            text: `${samples.length} handwriting samples collected via Bangla Handwriting Collector`,
-          })
-          return
-        }
-        // Fallback: text-only share
         await navigator.share({
+          files: [file],
           title: 'Bangla Handwriting Dataset',
-          text: `I collected ${samples.length} Bangla handwriting samples. Download the ZIP from the app.`,
+          text: `${samples.length} handwriting samples collected via Bangla Handwriting Collector`,
         })
         return
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
-        // Fall through to error message
+        // File share failed — fall through to text-only share
       }
     }
 
-    setShareError('Native sharing is not available on this device. Use Download instead.')
+    // Fallback: text-only share (no files)
+    try {
+      await navigator.share({
+        title: 'Bangla Handwriting Dataset',
+        text: `I collected ${samples.length} Bangla handwriting samples. Download the ZIP from the app.`,
+      })
+      return
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      setShareError(`Sharing failed: ${err instanceof Error ? err.message : 'Unknown error'}. Use Download instead.`)
+    }
   }, [zipBlob, fileName, samples.length])
 
   const toggleFormat = (f: ExportFormat) => {
