@@ -591,7 +591,7 @@ export default function DrawingCanvas({
 
   // ── NORMAL MODE ──
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Canvas + Toolbar */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
         <Toolbar

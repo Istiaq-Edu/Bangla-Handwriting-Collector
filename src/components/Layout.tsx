@@ -5,7 +5,7 @@ import { NavItemIcon } from './Icons'
 
 const NAV_ITEMS = [
   { path: '/', label: 'Draw', icon: PenLine },
-  { path: '/grid', label: 'Grid', icon: LayoutGrid },
+  { path: '/grid', label: 'Preview', icon: LayoutGrid },
   { path: '/export', label: 'Export', icon: Download },
   { path: '/settings', label: 'Settings', icon: SettingsIcon },
 ] as const
@@ -23,7 +23,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-hidden">{children}</main>
 
       {/* Live region for dynamic status announcements (screen readers) */}
       <div aria-live="polite" aria-atomic="true" className="sr-only" id="live-status" />

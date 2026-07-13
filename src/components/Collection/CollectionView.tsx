@@ -159,7 +159,7 @@ export default function CollectionView() {
 
   return (
     <Layout>
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col overflow-hidden">
         {isEditMode && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}

@@ -1,8 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useCallback, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import {
-  Download, Share2, Copy, Check, Mail, MessageCircle,
-  Send, FileArchive, ChevronUp, AlertCircle,
+  Download, Share2, FileArchive, AlertCircle,
 } from 'lucide-react'
 import { Layout } from '../Layout'
 import { getAllSamples } from '../../db/database'
@@ -50,19 +49,13 @@ export default function ExportView() {
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' })
   const [zipBlob, setZipBlob] = useState<Blob | null>(null)
   const [zipFile, setZipFile] = useState<File | null>(null)
-  const [showShareSheet, setShowShareSheet] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [shareError, setShareError] = useState<string | null>(null)
-  const [capabilities, setCapabilities] = useState<ShareCapabilities>({
-    hasShare: false, canShareFiles: false, hasClipboard: false, canDownload: true,
-  })
 
   const [formats, setFormats] = useState<Set<ExportFormat>>(new Set(['folder-csv']))
   const [variants, setVariants] = useState<Set<ImageVariant>>(new Set(['raw']))
   const [colorScheme, setColorScheme] = useState<ColorScheme>('black-on-white')
 
   const sessionId = useStore((s) => s.sessionId)
-  const sheetRef = useRef<HTMLDivElement>(null)
 
   const fileName = `bangla-handwriting-${new Date().toISOString().slice(0, 10)}-${sessionId.slice(0, 8)}.zip`
 
@@ -126,7 +119,6 @@ export default function ExportView() {
     setZipFile(file)
 
     const caps = detectShareCapabilities(file)
-    setCapabilities(caps)
 
     if (caps.canShareFiles && blob.size <= MAX_SHARE_SIZE) {
       try {
@@ -141,54 +133,20 @@ export default function ExportView() {
       }
     }
 
-    setShowShareSheet(true)
-  }, [zipBlob, generateZip, fileName, samples.length])
-
-  const handleNativeShareText = useCallback(async () => {
-    if (!navigator.share) return
-    try {
-      await navigator.share({
-        title: 'Bangla Handwriting Dataset',
-        text: `I collected ${samples.length} Bangla handwriting samples. Download the ZIP and share it with me!`,
-      })
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return
+    if (caps.hasShare) {
+      try {
+        await navigator.share({
+          title: 'Bangla Handwriting Dataset',
+          text: `I collected ${samples.length} Bangla handwriting samples. Download the ZIP from the app.`,
+        })
+        return
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+      }
     }
-  }, [samples.length])
 
-  const handleCopyDescription = useCallback(() => {
-    const text = `Bangla Handwriting Dataset — ${samples.length} samples (${zipBlob ? (zipBlob.size / 1024 / 1024).toFixed(1) : '?'} MB). Collected via Bangla Handwriting Collector.`
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }).catch(() => {})
-  }, [samples.length, zipBlob])
-
-  const handleEmailShare = useCallback(() => {
-    const subject = encodeURIComponent('Bangla Handwriting Dataset')
-    const body = encodeURIComponent(
-      `Hi,\n\nI've collected ${samples.length} Bangla handwriting samples using Bangla Handwriting Collector.\n` +
-      `The dataset ZIP is attached separately (download first, then attach to this email).\n\n` +
-      `File: ${fileName}\n` +
-      `Size: ${zipBlob ? (zipBlob.size / 1024 / 1024).toFixed(1) : '?'} MB\n\n` +
-      `Thanks!`
-    )
-    window.location.href = `mailto:?subject=${subject}&body=${body}`
-  }, [samples.length, fileName, zipBlob])
-
-  const handleWhatsAppShare = useCallback(() => {
-    const text = encodeURIComponent(
-      `Bangla Handwriting Dataset — ${samples.length} samples. Download the ZIP file I'm sharing separately.`
-    )
-    window.open(`https://wa.me/?text=${text}`, '_blank')
-  }, [samples.length])
-
-  const handleTelegramShare = useCallback(() => {
-    const text = encodeURIComponent(
-      `Bangla Handwriting Dataset — ${samples.length} samples. Download the ZIP file I'm sharing separately.`
-    )
-    window.open(`https://t.me/share/url?url=${encodeURIComponent('https://bangla-handwriting-collector.vercel.app')}&text=${text}`, '_blank')
-  }, [samples.length])
+    setShareError('Native sharing is not available on this device. Use Download instead.')
+  }, [zipBlob, generateZip, fileName, samples.length])
 
   const toggleFormat = (f: ExportFormat) => {
     setFormats((prev) => {
@@ -424,237 +382,6 @@ export default function ExportView() {
           </div>
         </div>
       </div>
-
-      {/* Share Bottom Sheet */}
-      <AnimatePresence>
-        {showShareSheet && (
-          <ShareSheet
-            onClose={() => setShowShareSheet(false)}
-            capabilities={capabilities}
-            zipFile={zipFile}
-            fileName={fileName}
-            zipSize={zipBlob?.size ?? 0}
-            isOverLimit={isOverShareLimit}
-            onDownload={handleDownload}
-            onNativeShareText={handleNativeShareText}
-            onCopyDescription={handleCopyDescription}
-            onEmail={handleEmailShare}
-            onWhatsApp={handleWhatsAppShare}
-            onTelegram={handleTelegramShare}
-            copied={copied}
-            sampleCount={samples.length}
-            sheetRef={sheetRef}
-          />
-        )}
-      </AnimatePresence>
     </Layout>
-  )
-}
-
-// ── Bottom Sheet Component ──
-interface ShareSheetProps {
-  onClose: () => void
-  capabilities: ShareCapabilities
-  zipFile: File | null
-  fileName: string
-  zipSize: number
-  isOverLimit: boolean
-  onDownload: () => void
-  onNativeShareText: () => void
-  onCopyDescription: () => void
-  onEmail: () => void
-  onWhatsApp: () => void
-  onTelegram: () => void
-  copied: boolean
-  sampleCount: number
-  sheetRef: React.RefObject<HTMLDivElement | null>
-}
-
-function ShareSheet({
-  onClose, capabilities, zipFile, fileName, zipSize, isOverLimit,
-  onDownload, onNativeShareText, onCopyDescription, onEmail,
-  onWhatsApp, onTelegram, copied, sampleCount,
-}: ShareSheetProps) {
-  const sizeMB = (zipSize / 1024 / 1024).toFixed(1)
-  const sizeKB = (zipSize / 1024).toFixed(0)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  const shareOptions: { id: string; label: string; icon: React.ReactNode; onClick: () => void; available: boolean; color: string }[] = [
-    {
-      id: 'native-files',
-      label: 'Share ZIP',
-      icon: <Share2 size={22} strokeWidth={2} />,
-      onClick: async () => {
-        if (zipFile && typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
-          try {
-            await navigator.share({ files: [zipFile], title: 'Bangla Handwriting Dataset', text: `${sampleCount} handwriting samples` })
-          } catch (err) {
-            if (err instanceof Error && err.name !== 'AbortError') {
-              onDownload()
-            }
-          }
-        }
-        onClose()
-      },
-      available: capabilities.canShareFiles && !isOverLimit,
-      color: 'bg-indigo-500',
-    },
-    {
-      id: 'native-text',
-      label: 'Share text',
-      icon: <MessageCircle size={22} strokeWidth={2} />,
-      onClick: () => { onNativeShareText(); onClose() },
-      available: capabilities.hasShare && (!capabilities.canShareFiles || isOverLimit),
-      color: 'bg-emerald-500',
-    },
-    {
-      id: 'download',
-      label: 'Download',
-      icon: <Download size={22} strokeWidth={2} />,
-      onClick: () => { onDownload(); onClose() },
-      available: true,
-      color: 'bg-slate-600',
-    },
-    {
-      id: 'copy',
-      label: copied ? 'Copied!' : 'Copy info',
-      icon: copied ? <Check size={22} strokeWidth={2} /> : <Copy size={22} strokeWidth={2} />,
-      onClick: onCopyDescription,
-      available: capabilities.hasClipboard,
-      color: 'bg-violet-500',
-    },
-    {
-      id: 'whatsapp',
-      label: 'WhatsApp',
-      icon: <MessageCircle size={22} strokeWidth={2} />,
-      onClick: () => { onWhatsApp(); onClose() },
-      available: true,
-      color: 'bg-emerald-500',
-    },
-    {
-      id: 'telegram',
-      label: 'Telegram',
-      icon: <Send size={22} strokeWidth={2} />,
-      onClick: () => { onTelegram(); onClose() },
-      available: true,
-      color: 'bg-sky-500',
-    },
-    {
-      id: 'email',
-      label: 'Email',
-      icon: <Mail size={22} strokeWidth={2} />,
-      onClick: () => { onEmail(); onClose() },
-      available: true,
-      color: 'bg-orange-500',
-    },
-  ]
-
-  const visibleOptions = shareOptions.filter((o) => o.available)
-
-  return (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/50"
-        onClick={onClose}
-      />
-
-      {/* Sheet */}
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Share dataset"
-        className="fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-slate-900"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        {/* Handle */}
-        <div className="flex justify-center pt-3">
-          <div className="h-1 w-10 rounded-full bg-slate-700" />
-        </div>
-
-        <div className="px-4 pb-4">
-          {/* Header */}
-          <div className="mb-3 mt-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileArchive size={20} strokeWidth={2} className="text-indigo-400" />
-              <div>
-                <h3 className="text-base font-semibold text-slate-100">
-                  Share Dataset
-                </h3>
-                <p className="text-xs text-slate-400">
-                  {sampleCount} samples · {zipSize > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-800"
-            >
-              <ChevronUp size={20} />
-            </button>
-          </div>
-
-          {/* Large file warning */}
-          {isOverLimit && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/10 p-2.5 text-xs text-orange-700">
-              <AlertCircle size={16} className="shrink-0" />
-              File is larger than 10 MB — native file sharing may not work on some devices. Download is recommended.
-            </div>
-          )}
-
-          {/* Share options grid */}
-          <div className="grid grid-cols-4 gap-3">
-            {visibleOptions.map((option) => (
-              <motion.button
-                key={option.id}
-                onClick={option.onClick}
-                className="flex flex-col items-center gap-1.5"
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-2xl ${option.color} text-white shadow-md`}
-                >
-                  {option.icon}
-                </div>
-                <span className="text-xs font-medium text-slate-300">
-                  {option.label}
-                </span>
-              </motion.button>
-            ))}
-          </div>
-
-          {/* File name */}
-          <div className="mt-3 rounded-lg bg-slate-800/50 px-3 py-2">
-            <p className="truncate text-xs text-slate-400">
-              {fileName}
-            </p>
-          </div>
-
-          {/* Cancel */}
-          <motion.button
-            onClick={onClose}
-            className="mt-3 w-full rounded-xl border border-slate-700 py-3 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/50"
-            whileTap={{ scale: 0.97 }}
-          >
-            Cancel
-          </motion.button>
-        </div>
-      </motion.div>
-    </>
   )
 }
