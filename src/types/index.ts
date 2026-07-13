@@ -40,15 +40,9 @@ export interface Contributor {
   sampleCount: number
 }
 
-export type PresentationMode = 'sequential' | 'randomized' | 'adaptive' | 'user-select'
-
-export type Theme = 'light' | 'dark'
-
 export type DeviceType = 'mouse' | 'touch' | 'pen'
 
 export interface Settings {
-  presentationMode: PresentationMode
-  theme: Theme
   penThickness: number
 }
 

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import {
   PenLine, LayoutGrid, Download, Settings as SettingsIcon,
-  Moon, Sun, Undo2, Redo2, Eraser, Trash2,
+  Undo2, Redo2, Eraser, Trash2,
   ChevronLeft, ChevronRight, Check, X, AlertCircle,
   Pencil, Share2, Image, Inbox,
 } from 'lucide-react'
@@ -46,20 +46,6 @@ export const ExportIcon = ({ size = 22, className = '' }: IconProps) => (
 export const SettingsGearIcon = ({ size = 22, className = '' }: IconProps) => (
   <motion.div {...baseMotion}>
     <SettingsIcon size={size} className={className} strokeWidth={2} />
-  </motion.div>
-)
-
-// ── Theme toggle ──
-export const ThemeToggleIcon = ({ isDark, size = 20 }: { isDark: boolean; size?: number }) => (
-  <motion.div
-    key={isDark ? 'moon' : 'sun'}
-    initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
-    animate={{ rotate: 0, opacity: 1, scale: 1 }}
-    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-    whileHover={{ scale: 1.15 }}
-    whileTap={{ scale: 0.85 }}
-  >
-    {isDark ? <Moon size={size} strokeWidth={2} /> : <Sun size={size} strokeWidth={2} />}
   </motion.div>
 )
 

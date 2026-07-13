@@ -9,7 +9,6 @@ import { BANGLA_CHARACTERS, VOWELS, CONSONANTS, NUMERALS, getCharacterById, type
 import { useStore } from '../../store/useStore'
 import { saveSample } from '../../db/database'
 import { v4 as uuidv4 } from 'uuid'
-import { getOrderForMode } from '../../utils/presentationModes'
 import type { Stroke } from '../../types'
 
 type CategoryFilter = 'all' | 'vowel' | 'consonant' | 'numeral'
@@ -36,7 +35,6 @@ export default function CollectionView() {
   const [position, setPosition] = useState(0)
 
   const sessionId = useStore((s) => s.sessionId)
-  const presentationMode = useStore((s) => s.presentationMode)
   const incrementTotalSamples = useStore((s) => s.incrementTotalSamples)
   const editState = useStore((s) => s.editState)
   const clearEdit = useStore((s) => s.clearEdit)
@@ -46,14 +44,12 @@ export default function CollectionView() {
   const sessionIdRef = useRef(sessionId)
   sessionIdRef.current = sessionId
 
-  // Rebuild order when category or presentation mode changes
+  // Rebuild order when category changes
   useEffect(() => {
     const chars = getFilteredChars(category)
-    const mode = presentationMode === 'user-select' ? 'sequential' : presentationMode
-    const newOrder = getOrderForMode(mode, chars)
-    setOrder(newOrder)
+    setOrder(chars.map((c) => c.id))
     setPosition(0)
-  }, [category, presentationMode])
+  }, [category])
 
   const currentCharId = useMemo(() => {
     if (editState.sample) return editState.sample.characterId
@@ -169,15 +165,15 @@ export default function CollectionView() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="flex items-center justify-between gap-3 bg-blue-50 px-4 py-3 dark:bg-blue-900/20"
+            className="flex items-center justify-between gap-3 bg-indigo-500/10 px-4 py-3"
           >
             <div className="flex items-center gap-2">
-              <Pencil size={18} strokeWidth={2} className="shrink-0 text-blue-600 dark:text-blue-400" />
+              <Pencil size={18} strokeWidth={2} className="shrink-0 text-indigo-400" />
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                <span className="text-sm font-medium text-indigo-300">
                   Editing sample
                 </span>
-                <span className="text-xs text-blue-500 dark:text-blue-500/70">
+                <span className="text-xs text-blue-500">
                   Changes will replace the original
                 </span>
               </div>
@@ -187,7 +183,7 @@ export default function CollectionView() {
                 clearEdit()
                 navigate('/grid')
               }}
-              className="flex items-center gap-1.5 rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+              className="flex items-center gap-1.5 rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-indigo-400 transition-colors hover:bg-indigo-500/15"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.93 }}
             >
@@ -199,19 +195,21 @@ export default function CollectionView() {
 
         {/* Category toggle tabs (hidden in edit mode) */}
         {!isEditMode && (
-          <div className="flex gap-1 px-3 pt-2">
+          <div className="flex gap-1.5 px-3 pt-2">
             {CATEGORY_TABS.map((tab) => (
-              <button
+              <motion.button
                 key={tab.value}
                 onClick={() => setCategory(tab.value)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
                 className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
                   category === tab.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                 }`}
               >
                 {tab.label}
-              </button>
+              </motion.button>
             ))}
           </div>
         )}
@@ -225,10 +223,10 @@ export default function CollectionView() {
           currentIdx={isEditMode ? 0 : position}
           totalChars={isEditMode ? 1 : order.length}
           initialStrokes={isEditMode ? editState.initialStrokes : null}
-          submitLabel={isEditMode ? '✓ Save' : '✓ OK'}
+          submitLabel={isEditMode ? 'Save' : 'OK'}
         />
         {!isEditMode && (
-          <div className="landscape-compact flex items-center justify-center border-t border-gray-200 px-4 py-2 dark:border-gray-700">
+          <div className="landscape-compact flex items-center justify-center border-t border-slate-700 px-4 py-2">
             <ProgressDots
               currentIdx={position}
               total={order.length}

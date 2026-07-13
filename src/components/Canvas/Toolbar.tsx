@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Undo2, Redo2, Eraser, Trash2, RotateCw, ChevronDown,
+  Undo2, Redo2, Eraser, Trash2, RotateCw, ChevronDown, Plus, Minus,
 } from 'lucide-react'
 
 interface ToolbarProps {
   penColor: string
+  penThickness: number
   isErasing: boolean
   onToggleEraser: () => void
   onUndo: () => void
@@ -14,6 +15,7 @@ interface ToolbarProps {
   onRotate: () => void
   canRotate: boolean
   onPenColorChange: (color: string) => void
+  onPenThicknessChange: (thickness: number) => void
   canUndo: boolean
   canRedo: boolean
 }
@@ -27,10 +29,10 @@ const COLORS = [
 
 const btnBase = (active: boolean) =>
   active
-    ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-    : 'border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-30 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'
+    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400'
+    : 'border-slate-700 text-slate-300 hover:bg-slate-800/50 disabled:opacity-30'
 
-const dangerBtn = 'border-red-300 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20'
+const dangerBtn = 'border-rose-500/30 text-rose-400 hover:bg-rose-500/10'
 
 const iconMotion = {
   whileHover: { scale: 1.15 },
@@ -64,7 +66,49 @@ function ToolButton({
 
 function Divider({ vertical }: { vertical?: boolean }) {
   return (
-    <div className={vertical ? 'mx-0.5 h-8 w-px shrink-0 bg-gray-200 dark:bg-gray-700' : 'my-1 h-px bg-gray-200 dark:bg-gray-700'} />
+    <div className={vertical ? 'mx-0.5 h-8 w-px shrink-0 bg-slate-700' : 'my-1 h-px bg-slate-700'} />
+  )
+}
+
+function ColorSwatches({ penColor, onPenColorChange }: { penColor: string; onPenColorChange: (c: string) => void }) {
+  return (
+    <div className="flex shrink-0 flex-col items-center gap-2 py-1">
+      {COLORS.map((c) => (
+        <motion.button
+          key={c.value}
+          aria-label={c.label}
+          className={`h-7 w-7 rounded-full border-2 shadow-sm transition-transform ${
+            penColor === c.value ? 'border-indigo-500 ring-1 ring-indigo-400 scale-110' : 'border-transparent hover:scale-110'
+          }`}
+          style={{ backgroundColor: c.value }}
+          onClick={() => onPenColorChange(c.value)}
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
+        />
+      ))}
+    </div>
+  )
+}
+
+function ThicknessStepper({ penThickness, onPenThicknessChange, penColor }: { penThickness: number; onPenThicknessChange: (t: number) => void; penColor: string }) {
+  const up = () => onPenThicknessChange(Math.min(20, penThickness + 1))
+  const down = () => onPenThicknessChange(Math.max(1, penThickness - 1))
+  return (
+    <div className="flex shrink-0 flex-col items-center gap-1 py-1">
+      <ToolButton onClick={up} label="Thicker">
+        <Plus size={18} strokeWidth={2} />
+      </ToolButton>
+      <motion.div
+        className="shrink-0 rounded-full"
+        style={{ backgroundColor: penColor }}
+        animate={{ width: Math.max(6, penThickness), height: Math.max(6, penThickness) }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      />
+      <span className="text-[10px] font-semibold leading-none text-slate-400">{penThickness}</span>
+      <ToolButton onClick={down} label="Thinner">
+        <Minus size={18} strokeWidth={2} />
+      </ToolButton>
+    </div>
   )
 }
 
@@ -110,13 +154,13 @@ function ColorDropdown({ penColor, onPenColorChange }: { penColor: string; onPen
       <motion.button
         ref={btnRef}
         onClick={open ? () => setOpen(false) : handleOpen}
-        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 p-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 p-2 transition-colors hover:bg-slate-800/50"
         aria-label="Color picker"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.9 }}
       >
-        <div className="h-5 w-5 rounded-full border border-gray-300 shadow-sm dark:border-gray-600" style={{ backgroundColor: penColor }} />
-        <ChevronDown size={12} strokeWidth={2.5} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <div className="h-5 w-5 rounded-full border border-slate-600 shadow-sm" style={{ backgroundColor: penColor }} />
+        <ChevronDown size={12} strokeWidth={2.5} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </motion.button>
 
       {open && (
@@ -129,7 +173,7 @@ function ColorDropdown({ penColor, onPenColorChange }: { penColor: string; onPen
             initial={{ opacity: 0, scale: 0.9, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="rounded-xl border border-gray-200 bg-white p-2 shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            className="rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl"
           >
             <div className="flex flex-col gap-1">
               {COLORS.map((c) => (
@@ -139,14 +183,14 @@ function ColorDropdown({ penColor, onPenColorChange }: { penColor: string; onPen
                     onPenColorChange(c.value)
                     setOpen(false)
                   }}
-                  className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                    penColor === c.value ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                  className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-slate-800 ${
+                    penColor === c.value ? 'bg-indigo-500/10' : ''
                   }`}
                 >
-                  <div className={`h-6 w-6 rounded-full border-2 shadow-sm ${penColor === c.value ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-300 dark:border-gray-600'}`} style={{ backgroundColor: c.value }} />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{c.label}</span>
+                  <div className={`h-6 w-6 rounded-full border-2 shadow-sm ${penColor === c.value ? 'border-indigo-500 ring-1 ring-indigo-400' : 'border-slate-600'}`} style={{ backgroundColor: c.value }} />
+                  <span className="text-sm font-medium text-slate-300">{c.label}</span>
                   {penColor === c.value && (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   )}
@@ -170,13 +214,15 @@ export default function Toolbar({
   canRotate,
   penColor,
   onPenColorChange,
+  penThickness,
+  onPenThicknessChange,
   canUndo,
   canRedo,
 }: ToolbarProps) {
   return (
     <>
       {/* ═══ Desktop: vertical sidebar ═══ */}
-      <div className="hidden w-12 flex-col items-center gap-1.5 border-r border-gray-200 p-1.5 dark:border-gray-700 sm:flex">
+      <div className="hidden w-12 flex-col items-center gap-1.5 overflow-y-auto border-r border-slate-700 p-1.5 sm:flex">
         <ToolButton onClick={onUndo} disabled={!canUndo} label="Undo">
           <Undo2 size={18} strokeWidth={2} />
         </ToolButton>
@@ -196,13 +242,15 @@ export default function Toolbar({
           <RotateCw size={18} strokeWidth={2} />
         </ToolButton>
 
+        <ThicknessStepper penThickness={penThickness} onPenThicknessChange={onPenThicknessChange} penColor={penColor} />
+
         <Divider />
 
-        <ColorDropdown penColor={penColor} onPenColorChange={onPenColorChange} />
+        <ColorSwatches penColor={penColor} onPenColorChange={onPenColorChange} />
       </div>
 
       {/* ═══ Mobile: horizontal bar ═══ */}
-      <div className="order-first flex items-center gap-1 overflow-x-auto overscroll-contain border-b border-gray-200 px-2 py-1.5 dark:border-gray-700 sm:hidden">
+      <div className="order-first flex items-center gap-1 overflow-x-auto overscroll-contain border-b border-slate-700 px-2 py-1.5 sm:hidden">
         <ToolButton onClick={onUndo} disabled={!canUndo} label="Undo">
           <Undo2 size={16} strokeWidth={2} />
         </ToolButton>

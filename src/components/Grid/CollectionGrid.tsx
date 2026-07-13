@@ -17,17 +17,17 @@ const FILTERS: { value: FilterCategory; label: string }[] = [
 ]
 
 function getCountColor(count: number): string {
-  if (count === 0) return 'bg-red-50 dark:bg-red-900/20'
-  if (count <= 5) return 'bg-orange-50 dark:bg-orange-900/20'
-  if (count <= 20) return 'bg-yellow-50 dark:bg-yellow-900/20'
-  return 'bg-green-50 dark:bg-green-900/20'
+  if (count === 0) return 'bg-rose-500/10'
+  if (count <= 5) return 'bg-orange-500/10'
+  if (count <= 20) return 'bg-amber-500/10'
+  return 'bg-emerald-500/10'
 }
 
 function getCountTextColor(count: number): string {
-  if (count === 0) return 'text-red-600 dark:text-red-400'
-  if (count <= 5) return 'text-orange-600 dark:text-orange-400'
-  if (count <= 20) return 'text-yellow-600 dark:text-yellow-400'
-  return 'text-green-600 dark:text-green-400'
+  if (count === 0) return 'text-rose-400'
+  if (count <= 5) return 'text-orange-400'
+  if (count <= 20) return 'text-amber-400'
+  return 'text-emerald-400'
 }
 
 function useObjectUrl(blob: Blob | null | undefined): string {
@@ -53,7 +53,6 @@ export default function CollectionGrid() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [lightboxSample, setLightboxSample] = useState<SampleData | null>(null)
   const navigate = useNavigate()
-  const setPresentationMode = useStore((s) => s.setPresentationMode)
   const setTotalSamples = useStore((s) => s.setTotalSamples)
 
   const refreshCounts = useCallback(async () => {
@@ -118,7 +117,6 @@ export default function CollectionGrid() {
 
   const handleDrawThis = () => {
     if (selectedCharId !== null) {
-      setPresentationMode('user-select')
       navigate('/')
     }
   }
@@ -143,25 +141,25 @@ export default function CollectionGrid() {
     return (
       <Layout>
         <div className="flex h-full flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+          <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
             <button
               onClick={() => setSelectedCharId(null)}
-              className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400"
+              className="flex items-center gap-1 text-sm text-slate-400"
             >
               <ChevronLeft size={16} strokeWidth={2} />
               Back to grid
             </button>
             <div className="flex items-center gap-3">
-              <span className="text-3xl font-bold text-gray-900 dark:text-white">
+              <span className="text-3xl font-bold text-slate-100">
                 {char?.unicode}
               </span>
-              <span className="whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+              <span className="whitespace-nowrap text-sm text-slate-400">
                 {char?.transliteration} ({loadingSamples ? '...' : samples.length} samples)
               </span>
             </div>
             <motion.button
               onClick={handleDrawThis}
-              className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+              className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.93 }}
             >
@@ -172,18 +170,18 @@ export default function CollectionGrid() {
 
           <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
             {loadingSamples ? (
-              <div className="flex h-full items-center justify-center text-gray-500">
+              <div className="flex h-full items-center justify-center text-slate-400">
                 Loading samples...
               </div>
             ) : samples.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center text-gray-500">
-                 <span className="mb-2 text-gray-300 dark:text-gray-600">
+              <div className="flex h-full flex-col items-center justify-center text-slate-400">
+                 <span className="mb-2 text-slate-600">
                    <ImageIcon strokeWidth={1.5} className="size-8 sm:size-10" />
                  </span>
                 <p>No samples yet for {char?.unicode}</p>
                 <motion.button
                   onClick={handleDrawThis}
-                  className="mt-3 flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  className="mt-3 flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.93 }}
                 >
@@ -222,8 +220,8 @@ export default function CollectionGrid() {
               onClick={() => setFilter(f.value)}
               className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${
                 filter === f.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-800 text-slate-300'
               }`}
             >
               {f.label}
@@ -234,29 +232,33 @@ export default function CollectionGrid() {
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {chars.map((char) => {
             const count = counts.get(char.id) ?? 0
-            const progress = (count / maxCount) * 100
+            const progress = maxCount > 0 ? (count / maxCount) * 100 : 0
             return (
-              <button
+              <motion.button
                 key={char.id}
                 onClick={() => setSelectedCharId(char.id)}
-                className={`relative flex flex-col items-center rounded-xl border border-gray-200 p-3 transition-all hover:scale-105 hover:shadow-md dark:border-gray-700 ${getCountColor(count)}`}
+                whileHover={{ scale: 1.04, y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                className={`relative flex flex-col items-center rounded-xl border border-slate-700 bg-slate-900 p-3 shadow-sm transition-shadow hover:shadow-md ${getCountColor(count)}`}
               >
-                <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                <span className="text-3xl font-bold text-slate-100">
                   {char.unicode}
                 </span>
-                <span className="mt-1 block w-full truncate text-xs text-gray-500 dark:text-gray-400">
+                <span className="mt-1 block w-full truncate text-center text-xs text-slate-400">
                   {char.transliteration}
                 </span>
                 <span className={`mt-1 text-sm font-semibold ${getCountTextColor(count)}`}>
                   {count}
                 </span>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                  <div
-                    className="h-full rounded-full bg-blue-500 transition-all"
-                    style={{ width: `${progress}%` }}
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    className="h-full rounded-full bg-indigo-500"
                   />
                 </div>
-              </button>
+              </motion.button>
             )
           })}
         </div>
@@ -287,7 +289,7 @@ function SampleCard({
   }, [sample.pngBlob])
 
   return (
-    <div className="group relative flex flex-col items-center rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800">
+    <div className="group relative flex flex-col items-center rounded-lg border border-slate-700 bg-slate-900 p-2">
       {/* Quick delete button (top-right, always visible) */}
       <motion.button
         onClick={(e) => {
@@ -295,7 +297,7 @@ function SampleCard({
           onDelete(sample.id)
         }}
         disabled={deleting}
-        className="absolute right-1 top-1 z-10 rounded-full bg-red-500/90 p-1.5 text-white opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100"
+              className="absolute right-1 top-1 z-10 rounded-full bg-rose-500/90 p-1.5 text-white opacity-100 transition-opacity hover:bg-rose-600 disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100"
         aria-label="Delete sample"
         whileHover={{ scale: 1.15 }}
         whileTap={{ scale: 0.85 }}
@@ -307,10 +309,10 @@ function SampleCard({
       <button
         onClick={onClick}
         aria-label={`Sample ${index + 1} — click to enlarge`}
-        className="aspect-square w-full overflow-hidden rounded bg-gray-50 dark:bg-gray-900"
+        className="aspect-square w-full overflow-hidden rounded bg-slate-800/50"
       >
         {imgError ? (
-          <div className="flex h-full flex-col items-center justify-center text-xs text-red-400">
+          <div className="flex h-full flex-col items-center justify-center text-xs text-rose-400">
             <span>No image</span>
           </div>
         ) : imgUrl ? (
@@ -321,20 +323,20 @@ function SampleCard({
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-gray-400">
+          <div className="flex h-full items-center justify-center text-xs text-slate-500">
             Loading...
           </div>
         )}
       </button>
 
       <div className="mt-1.5 w-full text-center">
-        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+        <div className="text-xs font-medium text-slate-400">
           #{index + 1}
         </div>
-        <div className="text-xs text-gray-400 dark:text-gray-500">
+        <div className="text-xs text-slate-500">
           {new Date(sample.createdAt).toLocaleDateString()}
         </div>
-        <div className="text-xs text-gray-400 dark:text-gray-500">
+        <div className="text-xs text-slate-500">
           {sample.strokeCount} strokes · {sample.deviceType}
         </div>
       </div>
@@ -452,7 +454,7 @@ function Lightbox({
         </motion.button>
         <motion.button
           onClick={handleModify}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-blue-400 py-3 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-500/20"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-indigo-400 py-3 text-sm font-medium text-indigo-400 transition-colors hover:bg-indigo-500/20"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.96 }}
         >
@@ -462,7 +464,7 @@ function Lightbox({
         <motion.button
           onClick={() => onDelete(sample.id)}
           disabled={deleting}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-rose-500 disabled:opacity-50"
           whileHover={{ scale: deleting ? 1 : 1.02 }}
           whileTap={{ scale: deleting ? 1 : 0.96 }}
         >

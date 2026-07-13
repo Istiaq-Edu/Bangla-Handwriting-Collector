@@ -1,5 +1,6 @@
 import { useEffect, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useStore } from './store/useStore'
 import { getTotalSampleCount } from './db/database'
 
@@ -10,9 +11,46 @@ const SettingsView = lazy(() => import('./components/Settings/SettingsView'))
 
 function Loading() {
   return (
-    <div className="flex h-full items-center justify-center text-gray-500">
-      Loading...
-    </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex h-full items-center justify-center text-slate-400"
+    >
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-700 border-t-blue-600" />
+        <span className="text-sm">Loading...</span>
+      </div>
+    </motion.div>
+  )
+}
+
+function PageWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.22, ease: 'easeInOut' }}
+      className="h-full"
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedRoutes() {
+  const location = useLocation()
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageWrapper><CollectionView /></PageWrapper>} />
+        <Route path="/grid" element={<PageWrapper><CollectionGrid /></PageWrapper>} />
+        <Route path="/export" element={<PageWrapper><ExportView /></PageWrapper>} />
+        <Route path="/settings" element={<PageWrapper><SettingsView /></PageWrapper>} />
+        <Route path="*" element={<PageWrapper><Navigate to="/" replace /></PageWrapper>} />
+      </Routes>
+    </AnimatePresence>
   )
 }
 
@@ -29,13 +67,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Suspense fallback={<Loading />}>
-        <Routes>
-          <Route path="/" element={<CollectionView />} />
-          <Route path="/grid" element={<CollectionGrid />} />
-          <Route path="/export" element={<ExportView />} />
-          <Route path="/settings" element={<SettingsView />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AnimatedRoutes />
       </Suspense>
     </BrowserRouter>
   )

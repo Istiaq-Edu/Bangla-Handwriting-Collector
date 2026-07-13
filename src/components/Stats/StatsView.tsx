@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { Layout } from '../Layout'
+import { SkeletonStats } from '../Skeleton'
 import { getAllSamples, getTotalSampleCount } from '../../db/database'
 import { BANGLA_CHARACTERS, VOWELS, CONSONANTS, NUMERALS } from '../../data/banglaChars'
 import type { Sample } from '../../types'
@@ -81,9 +83,9 @@ function computeStats(samples: Sample[]): Stats {
 }
 
 const CATEGORY_INFO = [
-  { key: 'vowel' as const, label: 'Vowels', total: VOWELS.length, color: 'bg-blue-500' },
-  { key: 'consonant' as const, label: 'Consonants', total: CONSONANTS.length, color: 'bg-green-500' },
-  { key: 'numeral' as const, label: 'Numerals', total: NUMERALS.length, color: 'bg-purple-500' },
+  { key: 'vowel' as const, label: 'Vowels', total: VOWELS.length, color: 'bg-indigo-500' },
+  { key: 'consonant' as const, label: 'Consonants', total: CONSONANTS.length, color: 'bg-emerald-500' },
+  { key: 'numeral' as const, label: 'Numerals', total: NUMERALS.length, color: 'bg-violet-500' },
 ]
 
 const DEVICE_LABELS: Record<string, string> = { mouse: 'Mouse', touch: 'Touch', pen: 'Pen' }
@@ -112,9 +114,7 @@ export default function StatsView() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex h-full items-center justify-center text-gray-500">
-          Loading stats...
-        </div>
+        <SkeletonStats />
       </Layout>
     )
   }
@@ -122,10 +122,17 @@ export default function StatsView() {
   if (stats.total === 0) {
     return (
       <Layout>
-        <div className="flex h-full flex-col items-center justify-center text-gray-500">
-          <span className="text-4xl mb-2">📊</span>
-          <p>No samples yet. Start drawing!</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex h-full flex-col items-center justify-center text-slate-400"
+        >
+          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-800">
+            <span className="text-4xl">📊</span>
+          </div>
+          <p className="text-base font-medium">No samples yet</p>
+          <p className="mt-1 text-sm text-slate-500">Start drawing to see your stats</p>
+        </motion.div>
       </Layout>
     )
   }
@@ -137,14 +144,14 @@ export default function StatsView() {
       <div className="h-full overflow-y-auto p-4">
         <div className="mx-auto max-w-2xl space-y-6">
           {/* Total */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="text-sm text-gray-500 dark:text-gray-400">Total Samples</div>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+            <div className="text-sm text-slate-400">Total Samples</div>
+            <div className="text-3xl font-bold text-slate-100">{stats.total}</div>
           </div>
 
           {/* Category breakdown */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+            <h2 className="mb-3 text-sm font-semibold text-slate-300">
               By Category
             </h2>
             <div className="space-y-2">
@@ -154,10 +161,10 @@ export default function StatsView() {
                 return (
                   <div key={cat.key}>
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">{cat.label}</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{count}</span>
+                      <span className="text-slate-400">{cat.label}</span>
+                      <span className="font-medium text-slate-100">{count}</span>
                     </div>
-                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-700">
                       <div
                         className={`h-full rounded-full ${cat.color}`}
                         style={{ width: `${Math.min(100, pct)}%` }}
@@ -170,8 +177,8 @@ export default function StatsView() {
           </div>
 
           {/* Device breakdown */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+            <h2 className="mb-3 text-sm font-semibold text-slate-300">
               By Device
             </h2>
             <div className="flex gap-4">
@@ -179,11 +186,11 @@ export default function StatsView() {
                 const pct = stats.total > 0 ? (count / stats.total) * 100 : 0
                 return (
                   <div key={device} className="flex-1">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-slate-400">
                       {DEVICE_LABELS[device] ?? device}
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">{count}</div>
-                    <div className="text-xs text-gray-400">{pct.toFixed(0)}%</div>
+                    <div className="text-lg font-bold text-slate-100">{count}</div>
+                    <div className="text-xs text-slate-500">{pct.toFixed(0)}%</div>
                   </div>
                 )
               })}
@@ -191,26 +198,33 @@ export default function StatsView() {
           </div>
 
           {/* Last 7 days */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+            <h2 className="mb-3 text-sm font-semibold text-slate-300">
               Last 7 Days
             </h2>
-            <div className="flex items-end justify-between gap-2" style={{ height: '100px' }}>
+            <div className="relative flex items-end justify-between gap-2" style={{ height: '120px' }}>
+              {/* Baseline */}
+              <div className="absolute bottom-5 left-0 right-0 h-px bg-slate-700" />
               {stats.last7Days.map((day) => {
                 const heightPct = (day.count / maxDayCount) * 100
                 const label = new Date(day.date).toLocaleDateString('en', { weekday: 'short' })
+                const isToday = day.date === new Date().toISOString().slice(0, 10)
                 return (
-                  <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-xs font-medium text-gray-900 dark:text-white">
+                  <div key={day.date} className="relative flex flex-1 flex-col items-center gap-1 z-10">
+                    <span className="text-xs font-medium text-slate-100">
                       {day.count > 0 ? day.count : ''}
                     </span>
                     <div className="flex w-full flex-1 items-end">
-                      <div
-                        className="w-full rounded-t bg-blue-500 transition-all"
-                        style={{ height: `${Math.max(2, heightPct)}%` }}
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${Math.max(4, heightPct)}%` }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        className={`w-full rounded-t transition-colors ${isToday ? 'bg-indigo-600' : 'bg-indigo-500'}`}
                       />
                     </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
+                    <span className={`text-xs ${isToday ? 'font-semibold text-indigo-400' : 'text-slate-400'}`}>
+                      {label}
+                    </span>
                   </div>
                 )
               })}
@@ -219,32 +233,32 @@ export default function StatsView() {
 
           {/* Top / Bottom characters */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="mb-2 text-sm font-semibold text-green-600 dark:text-green-400">
+            <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+              <h2 className="mb-2 text-sm font-semibold text-emerald-400">
                 Most Collected
               </h2>
               <div className="space-y-1">
                 {stats.topCharacters.map((c, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-900 dark:text-white">
-                      {c.char} <span className="text-gray-400">({c.transliteration})</span>
+                    <span className="text-slate-100">
+                      {c.char} <span className="text-slate-500">({c.transliteration})</span>
                     </span>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{c.count}</span>
+                    <span className="font-medium text-slate-300">{c.count}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="mb-2 text-sm font-semibold text-orange-600 dark:text-orange-400">
+            <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+              <h2 className="mb-2 text-sm font-semibold text-orange-400">
                 Needs More
               </h2>
               <div className="space-y-1">
                 {stats.bottomCharacters.map((c, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-900 dark:text-white">
-                      {c.char} <span className="text-gray-400">({c.transliteration})</span>
+                    <span className="text-slate-100">
+                      {c.char} <span className="text-slate-500">({c.transliteration})</span>
                     </span>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{c.count}</span>
+                    <span className="font-medium text-slate-300">{c.count}</span>
                   </div>
                 ))}
               </div>

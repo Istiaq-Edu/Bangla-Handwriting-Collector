@@ -215,7 +215,7 @@ export default function ExportView() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex h-full items-center justify-center text-gray-500">
+        <div className="flex h-full items-center justify-center text-slate-400">
           Loading...
         </div>
       </Layout>
@@ -225,8 +225,8 @@ export default function ExportView() {
   if (samples.length === 0) {
     return (
       <Layout>
-        <div className="flex h-full flex-col items-center justify-center text-gray-500">
-          <FileArchive size={48} strokeWidth={1.5} className="mb-3 text-gray-300 dark:text-gray-600" />
+        <div className="flex h-full flex-col items-center justify-center text-slate-400">
+          <FileArchive size={48} strokeWidth={1.5} className="mb-3 text-slate-600" />
           <p>No samples to export yet.</p>
         </div>
       </Layout>
@@ -241,17 +241,17 @@ export default function ExportView() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4 dark:border-gray-700 dark:from-blue-900/20 dark:to-gray-800"
+            className="rounded-xl border border-slate-700 bg-gradient-to-br from-indigo-500/10 to-slate-900 p-4"
           >
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-600 p-2.5 text-white">
+              <div className="rounded-lg bg-indigo-600 p-2.5 text-white">
                 <FileArchive size={24} strokeWidth={2} />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="text-2xl font-bold text-slate-100">
                   {samples.length}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-slate-400">
                   samples ready for export
                 </div>
               </div>
@@ -260,7 +260,7 @@ export default function ExportView() {
 
           {/* Formats */}
           <section>
-            <h2 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+            <h2 className="mb-2 text-sm font-semibold text-slate-300">
               Export Formats
             </h2>
             <div className="space-y-2">
@@ -269,8 +269,8 @@ export default function ExportView() {
                   key={f.value}
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
                     formats.has(f.value)
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700'
+                      ? 'border-indigo-500 bg-indigo-500/10'
+                      : 'border-slate-700'
                   }`}
                 >
                   <input
@@ -280,10 +280,10 @@ export default function ExportView() {
                     className="mt-0.5 accent-blue-600"
                   />
                   <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    <div className="text-sm font-medium text-slate-100">
                       {f.label}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-slate-400">
                       {f.description}
                     </div>
                   </div>
@@ -294,7 +294,7 @@ export default function ExportView() {
 
           {/* Image Variants */}
           <section>
-            <h2 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+            <h2 className="mb-2 text-sm font-semibold text-slate-300">
               Image Variants
             </h2>
             <div className="grid grid-cols-2 gap-2">
@@ -303,8 +303,8 @@ export default function ExportView() {
                   key={v}
                   className={`flex cursor-pointer items-center gap-2 rounded-lg border p-2 transition-colors ${
                     variants.has(v)
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700'
+                      ? 'border-indigo-500 bg-indigo-500/10'
+                      : 'border-slate-700'
                   }`}
                 >
                   <input
@@ -313,7 +313,7 @@ export default function ExportView() {
                     onChange={() => toggleVariant(v)}
                     className="accent-blue-600"
                   />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">
+                  <span className="text-xs text-slate-300">
                     {getVariantLabel(v)}
                   </span>
                 </label>
@@ -323,7 +323,7 @@ export default function ExportView() {
 
           {/* Color Scheme */}
           <section>
-            <h2 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+            <h2 className="mb-2 text-sm font-semibold text-slate-300">
               Color Scheme
             </h2>
             <div className="flex gap-2">
@@ -336,8 +336,8 @@ export default function ExportView() {
                   }}
                   className={`flex-1 rounded-lg border p-3 text-sm transition-colors ${
                     colorScheme === cs
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700'
+                      ? 'border-indigo-500 bg-indigo-500/10'
+                      : 'border-slate-700'
                   }`}
                 >
                   {cs === 'black-on-white' ? 'Black on White' : 'White on Black'}
@@ -351,7 +351,7 @@ export default function ExportView() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+              className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-400"
             >
               <AlertCircle size={18} strokeWidth={2} className="shrink-0" />
               {shareError}
@@ -363,18 +363,18 @@ export default function ExportView() {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20"
+              className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-3"
             >
-              <div className="mb-1 text-sm text-blue-700 dark:text-blue-300">
+              <div className="mb-1 text-sm text-indigo-300">
                 {progress.label}
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-blue-200 dark:bg-blue-800">
+              <div className="h-2 overflow-hidden rounded-full bg-indigo-500/20">
                 <motion.div
-                  className="h-full rounded-full bg-blue-600"
+                  className="h-full rounded-full bg-indigo-600"
                   animate={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
                 />
               </div>
-              <div className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+              <div className="mt-1 text-xs text-indigo-400">
                 {progress.current} / {progress.total}
               </div>
             </motion.div>
@@ -385,13 +385,13 @@ export default function ExportView() {
             <motion.div
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between rounded-lg border border-green-300 bg-green-50 p-3 text-sm dark:border-green-800 dark:bg-green-900/20"
+              className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm"
             >
-              <span className="text-green-700 dark:text-green-400">
+              <span className="text-emerald-400">
                 ZIP ready: {(zipBlob.size / 1024 / 1024).toFixed(1)} MB
               </span>
               {isOverShareLimit && (
-                <span className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                <span className="flex items-center gap-1 text-xs text-orange-400">
                   <AlertCircle size={14} />
                   Large file — use download
                 </span>
@@ -404,7 +404,7 @@ export default function ExportView() {
             <motion.button
               onClick={handleDownload}
               disabled={exporting || formats.size === 0 || variants.size === 0}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-300 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-600 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800/50 disabled:cursor-not-allowed disabled:opacity-40"
               whileHover={{ scale: exporting ? 1 : 1.02 }}
               whileTap={{ scale: exporting ? 1 : 0.96 }}
             >
@@ -414,7 +414,7 @@ export default function ExportView() {
             <motion.button
               onClick={handleShareClick}
               disabled={exporting || formats.size === 0 || variants.size === 0}
-              className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-700"
+              className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-700"
               whileHover={{ scale: exporting ? 1 : 1.02 }}
               whileTap={{ scale: exporting ? 1 : 0.96 }}
             >
@@ -504,15 +504,15 @@ function ShareSheet({
         onClose()
       },
       available: capabilities.canShareFiles && !isOverLimit,
-      color: 'bg-blue-500',
+      color: 'bg-indigo-500',
     },
     {
       id: 'native-text',
       label: 'Share text',
       icon: <MessageCircle size={22} strokeWidth={2} />,
       onClick: () => { onNativeShareText(); onClose() },
-      available: capabilities.hasShare && !capabilities.canShareFiles,
-      color: 'bg-green-500',
+      available: capabilities.hasShare && (!capabilities.canShareFiles || isOverLimit),
+      color: 'bg-emerald-500',
     },
     {
       id: 'download',
@@ -520,7 +520,7 @@ function ShareSheet({
       icon: <Download size={22} strokeWidth={2} />,
       onClick: () => { onDownload(); onClose() },
       available: true,
-      color: 'bg-gray-600',
+      color: 'bg-slate-600',
     },
     {
       id: 'copy',
@@ -528,7 +528,7 @@ function ShareSheet({
       icon: copied ? <Check size={22} strokeWidth={2} /> : <Copy size={22} strokeWidth={2} />,
       onClick: onCopyDescription,
       available: capabilities.hasClipboard,
-      color: 'bg-purple-500',
+      color: 'bg-violet-500',
     },
     {
       id: 'whatsapp',
@@ -536,7 +536,7 @@ function ShareSheet({
       icon: <MessageCircle size={22} strokeWidth={2} />,
       onClick: () => { onWhatsApp(); onClose() },
       available: true,
-      color: 'bg-green-500',
+      color: 'bg-emerald-500',
     },
     {
       id: 'telegram',
@@ -578,31 +578,31 @@ function ShareSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Share dataset"
-        className="fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-white dark:bg-gray-900"
+        className="fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-slate-900"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Handle */}
         <div className="flex justify-center pt-3">
-          <div className="h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" />
+          <div className="h-1 w-10 rounded-full bg-slate-700" />
         </div>
 
         <div className="px-4 pb-4">
           {/* Header */}
           <div className="mb-3 mt-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FileArchive size={20} strokeWidth={2} className="text-blue-600 dark:text-blue-400" />
+              <FileArchive size={20} strokeWidth={2} className="text-indigo-400" />
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-base font-semibold text-slate-100">
                   Share Dataset
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-slate-400">
                   {sampleCount} samples · {zipSize > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-800"
             >
               <ChevronUp size={20} />
             </button>
@@ -610,7 +610,7 @@ function ShareSheet({
 
           {/* Large file warning */}
           {isOverLimit && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg border border-orange-300 bg-orange-50 p-2.5 text-xs text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/10 p-2.5 text-xs text-orange-700">
               <AlertCircle size={16} className="shrink-0" />
               File is larger than 10 MB — native file sharing may not work on some devices. Download is recommended.
             </div>
@@ -631,7 +631,7 @@ function ShareSheet({
                 >
                   {option.icon}
                 </div>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-xs font-medium text-slate-300">
                   {option.label}
                 </span>
               </motion.button>
@@ -639,8 +639,8 @@ function ShareSheet({
           </div>
 
           {/* File name */}
-          <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
-            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+          <div className="mt-3 rounded-lg bg-slate-800/50 px-3 py-2">
+            <p className="truncate text-xs text-slate-400">
               {fileName}
             </p>
           </div>
@@ -648,7 +648,7 @@ function ShareSheet({
           {/* Cancel */}
           <motion.button
             onClick={onClose}
-            className="mt-3 w-full rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="mt-3 w-full rounded-xl border border-slate-700 py-3 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/50"
             whileTap={{ scale: 0.97 }}
           >
             Cancel

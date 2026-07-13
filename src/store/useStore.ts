@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
-import type { Contributor, PresentationMode, Theme, Stroke, Sample } from '../types'
+import type { Contributor, Stroke, Sample } from '../types'
 import { getContributor, saveContributor } from '../db/database'
 
 const STORAGE_KEY_SESSION = 'bangla-hw-session-id'
@@ -21,12 +21,6 @@ function detectDeviceType(): 'mouse' | 'touch' | 'pen' {
   return 'mouse'
 }
 
-function getStoredTheme(): Theme {
-  const stored = localStorage.getItem('bangla-hw-theme')
-  if (stored === 'dark' || stored === 'light') return stored
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
 interface EditState {
   sampleId: string | null
   initialStrokes: Stroke[] | null
@@ -36,8 +30,6 @@ interface EditState {
 interface AppState {
   sessionId: string
   contributor: Contributor | null
-  presentationMode: PresentationMode
-  theme: Theme
   penThickness: number
   penColor: string
   showGrid: boolean
@@ -45,9 +37,6 @@ interface AppState {
   totalSamples: number
   editState: EditState
   initSession: () => Promise<void>
-  setPresentationMode: (mode: PresentationMode) => void
-  setTheme: (theme: Theme) => void
-  toggleTheme: () => void
   setPenThickness: (thickness: number) => void
   setPenColor: (color: string) => void
   setShowGrid: (show: boolean) => void
@@ -62,8 +51,6 @@ interface AppState {
 export const useStore = create<AppState>((set, get) => ({
   sessionId: getSessionId(),
   contributor: null,
-  presentationMode: (localStorage.getItem('bangla-hw-presentation-mode') as PresentationMode) || 'sequential',
-  theme: getStoredTheme(),
   penThickness: Number(localStorage.getItem('bangla-hw-pen-thickness')) || 4,
   penColor: localStorage.getItem('bangla-hw-pen-color') || '#000000',
   showGrid: true,
@@ -90,25 +77,7 @@ export const useStore = create<AppState>((set, get) => ({
       await saveContributor(contributor)
     }
 
-    document.documentElement.classList.toggle('dark', get().theme === 'dark')
-
     set({ contributor })
-  },
-
-  setPresentationMode: (mode) => {
-    localStorage.setItem('bangla-hw-presentation-mode', mode)
-    set({ presentationMode: mode })
-  },
-
-  setTheme: (theme) => {
-    localStorage.setItem('bangla-hw-theme', theme)
-    document.documentElement.classList.toggle('dark', theme === 'dark')
-    set({ theme })
-  },
-
-  toggleTheme: () => {
-    const current = get().theme
-    get().setTheme(current === 'light' ? 'dark' : 'light')
   },
 
   setPenThickness: (thickness) => {

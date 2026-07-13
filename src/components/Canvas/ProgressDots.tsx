@@ -18,10 +18,10 @@ export default function ProgressDots({ currentIdx, total }: ProgressDotsProps) {
         key={i}
         className={`h-2 rounded-full transition-all ${
           isActive
-            ? 'w-6 bg-blue-600'
+            ? 'w-6 bg-indigo-600'
             : isPast
-              ? 'w-2 bg-blue-300 dark:bg-blue-700'
-              : 'w-2 bg-gray-300 dark:bg-gray-600'
+              ? 'w-2 bg-indigo-400'
+              : 'w-2 bg-slate-700'
         }`}
       />,
     )
@@ -29,10 +29,10 @@ export default function ProgressDots({ currentIdx, total }: ProgressDotsProps) {
 
   return (
     <div className="flex items-center gap-1">
-      {start > 0 && <span className="text-xs text-gray-400">...</span>}
+      {start > 0 && <span className="text-xs text-slate-500">...</span>}
       {dots}
-      {start + visibleDots < total && <span className="text-xs text-gray-400">...</span>}
-      <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">
+      {start + visibleDots < total && <span className="text-xs text-slate-500">...</span>}
+      <span className="ml-2 whitespace-nowrap text-xs font-medium text-slate-400">
         {currentIdx + 1}/{total}
       </span>
     </div>

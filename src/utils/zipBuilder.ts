@@ -315,14 +315,6 @@ export async function buildZip(
   return zip.generateAsync({ type: 'blob' })
 }
 
-export async function shareZip(zipBlob: Blob, fileName: string): Promise<boolean> {
-  if (!navigator.share) return false
-  const file = new File([zipBlob], fileName, { type: 'application/zip' })
-  if (!navigator.canShare({ files: [file] })) return false
-  await navigator.share({ files: [file], title: 'Bangla Handwriting Dataset' })
-  return true
-}
-
 export function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
