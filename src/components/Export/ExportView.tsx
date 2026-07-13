@@ -48,7 +48,6 @@ export default function ExportView() {
   const [exporting, setExporting] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' })
   const [zipBlob, setZipBlob] = useState<Blob | null>(null)
-  const [zipFile, setZipFile] = useState<File | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
 
   const [formats, setFormats] = useState<Set<ExportFormat>>(new Set(['folder-csv']))
@@ -116,7 +115,6 @@ export default function ExportView() {
 
     const file = new File([blob], fileName, { type: 'application/zip' })
     setZipBlob(blob)
-    setZipFile(file)
 
     const caps = detectShareCapabilities(file)
 
@@ -156,7 +154,6 @@ export default function ExportView() {
       return next
     })
     setZipBlob(null)
-    setZipFile(null)
   }
 
   const toggleVariant = (v: ImageVariant) => {
@@ -167,7 +164,6 @@ export default function ExportView() {
       return next
     })
     setZipBlob(null)
-    setZipFile(null)
   }
 
   if (loading) {
