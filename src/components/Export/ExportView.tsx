@@ -28,6 +28,7 @@ export default function ExportView() {
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' })
   const [zipBlob, setZipBlob] = useState<Blob | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
+  const [canShareFiles, setCanShareFiles] = useState(false)
 
   const [formats, setFormats] = useState<Set<ExportFormat>>(new Set(['folder-csv']))
   const [variants, setVariants] = useState<Set<ImageVariant>>(new Set(['raw']))
@@ -87,6 +88,26 @@ export default function ExportView() {
     return () => { cancelled = true }
   }, [generateZip])
 
+  // Pre-compute canShare() when zipBlob changes — NOT in the click handler.
+  // canShare() may consume transient activation on some browsers despite the spec
+  // saying it shouldn't. Running it in an effect avoids interfering with the click.
+  useEffect(() => {
+    if (!zipBlob || zipBlob.size > MAX_SHARE_SIZE) {
+      setCanShareFiles(false)
+      return
+    }
+    if (typeof navigator.canShare !== 'function') {
+      setCanShareFiles(false)
+      return
+    }
+    try {
+      const file = new File([zipBlob], fileName, { type: 'application/zip' })
+      setCanShareFiles(navigator.canShare({ files: [file] }))
+    } catch {
+      setCanShareFiles(false)
+    }
+  }, [zipBlob, fileName])
+
   const handleDownload = useCallback(async () => {
     let blob = zipBlob
     if (!blob) {
@@ -99,6 +120,8 @@ export default function ExportView() {
   // Use a ref + native event listener to bypass React's synthetic event system.
   // React's event delegation was consuming transient activation, causing
   // NotAllowedError on navigator.share(). Native listener preserves the gesture.
+  // canShareFiles is pre-computed in an effect above — NOT here — to avoid
+  // consuming transient activation in the click handler.
   const shareBtnRef = useRef<HTMLButtonElement>(null)
   const sharingRef = useRef(false)
 
@@ -121,11 +144,6 @@ export default function ExportView() {
       const title = 'Bangla Handwriting Dataset'
       const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
 
-      const canShareFiles =
-        zipBlob.size <= MAX_SHARE_SIZE &&
-        typeof navigator.canShare === 'function' &&
-        navigator.canShare({ files: [new File([zipBlob], fileName, { type: 'application/zip' })] })
-
       const shareData = canShareFiles
         ? { files: [new File([zipBlob], fileName, { type: 'application/zip' })], title, text }
         : { title, text }
@@ -143,7 +161,7 @@ export default function ExportView() {
 
     btn.addEventListener('click', handleClick)
     return () => btn.removeEventListener('click', handleClick)
-  }, [zipBlob, fileName, samples.length])
+  }, [zipBlob, fileName, samples.length, canShareFiles])
 
   const toggleFormat = (f: ExportFormat) => {
     setFormats((prev) => {
