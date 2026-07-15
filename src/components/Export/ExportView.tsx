@@ -91,22 +91,38 @@ export default function ExportView() {
   // Pre-compute canShare() when zipBlob changes — NOT in the click handler.
   // canShare() may consume transient activation on some browsers despite the spec
   // saying it shouldn't. Running it in an effect avoids interfering with the click.
+  // Also pre-create the File object — creating File from a large Blob inside the
+  // click handler can take long enough for transient activation to expire.
+  const preparedShareData = useRef<{ title: string; text: string; files?: File[] } | null>(null)
+
   useEffect(() => {
-    if (!zipBlob || zipBlob.size > MAX_SHARE_SIZE) {
+    if (!zipBlob) {
+      preparedShareData.current = null
       setCanShareFiles(false)
       return
     }
-    if (typeof navigator.canShare !== 'function') {
+
+    const title = 'Bangla Handwriting Dataset'
+    const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
+
+    if (zipBlob.size > MAX_SHARE_SIZE) {
+      preparedShareData.current = { title, text }
       setCanShareFiles(false)
       return
     }
-    try {
-      const file = new File([zipBlob], fileName, { type: 'application/zip' })
-      setCanShareFiles(navigator.canShare({ files: [file] }))
-    } catch {
+
+    const file = new File([zipBlob], fileName, { type: 'application/octet-stream' })
+
+    if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+      console.log('[Share] canShare=true, will share with files')
+      preparedShareData.current = { title, text, files: [file] }
+      setCanShareFiles(true)
+    } else {
+      console.log('[Share] canShare=false, will share text-only')
+      preparedShareData.current = { title, text }
       setCanShareFiles(false)
     }
-  }, [zipBlob, fileName])
+  }, [zipBlob, fileName, samples.length])
 
   const handleDownload = useCallback(async () => {
     let blob = zipBlob
@@ -118,10 +134,8 @@ export default function ExportView() {
   }, [zipBlob, generateZip, fileName])
 
   // Use a ref + native event listener to bypass React's synthetic event system.
-  // React's event delegation was consuming transient activation, causing
-  // NotAllowedError on navigator.share(). Native listener preserves the gesture.
-  // canShareFiles is pre-computed in an effect above — NOT here — to avoid
-  // consuming transient activation in the click handler.
+  // The click handler does ZERO computation — reads pre-computed shareData from ref.
+  // This ensures navigator.share() runs as fast as possible within the gesture.
   const shareBtnRef = useRef<HTMLButtonElement>(null)
   const sharingRef = useRef(false)
 
@@ -131,37 +145,32 @@ export default function ExportView() {
 
     const handleClick = () => {
       if (sharingRef.current) return
-      if (!zipBlob) {
+
+      const data = preparedShareData.current
+      if (!data) {
         setShareError('ZIP is still being prepared. Please wait a moment.')
         return
       }
 
       if (!window.isSecureContext || typeof navigator.share !== 'function') {
-        downloadBlob(zipBlob, fileName)
+        if (zipBlob) downloadBlob(zipBlob, fileName)
         return
       }
 
-      const title = 'Bangla Handwriting Dataset'
-      const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
-
-      const shareData = canShareFiles
-        ? { files: [new File([zipBlob], fileName, { type: 'application/zip' })], title, text }
-        : { title, text }
-
       sharingRef.current = true
-      navigator.share(shareData).finally(() => {
+      navigator.share(data).finally(() => {
         sharingRef.current = false
       }).catch((err: unknown) => {
         const name = (err as { name?: string })?.name ?? ''
         if (name === 'AbortError') return
-        downloadBlob(zipBlob, fileName)
+        if (zipBlob) downloadBlob(zipBlob, fileName)
         setShareError(`Share failed (${name}). Downloaded instead.`)
       })
     }
 
     btn.addEventListener('click', handleClick)
     return () => btn.removeEventListener('click', handleClick)
-  }, [zipBlob, fileName, samples.length, canShareFiles])
+  }, [zipBlob, fileName, canShareFiles])
 
   const toggleFormat = (f: ExportFormat) => {
     setFormats((prev) => {
