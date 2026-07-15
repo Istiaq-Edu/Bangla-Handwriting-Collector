@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   Download, Share2, FileArchive, AlertCircle,
@@ -96,45 +96,55 @@ export default function ExportView() {
     downloadBlob(blob, fileName)
   }, [zipBlob, generateZip, fileName])
 
-  // navigator.share() requires transient activation — called synchronously in the
-  // click handler with NO prior async work (canShare() may consume activation in
-  // some mobile browsers — a known bug). Plain <button> avoids Framer Motion
-  // gesture interference. try/catch + .catch() handles both sync throws and
-  // async rejections. DOMException is not always instanceof Error, so use duck typing.
-  const handleShareClick = useCallback(() => {
-    if (!zipBlob) {
-      setShareError('ZIP is still being prepared. Please wait a moment.')
-      return
+  // Use a ref + native event listener to bypass React's synthetic event system
+  // entirely. React's event delegation can sometimes interfere with transient
+  // activation on certain browsers. This also lets us log diagnostics at the
+  // exact moment of the click.
+  const shareBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const btn = shareBtnRef.current
+    if (!btn) return
+
+    const handleClick = () => {
+      console.log('[Share] click fired')
+      console.log('[Share] isSecureContext:', window.isSecureContext)
+      console.log('[Share] navigator.share type:', typeof navigator.share)
+      console.log('[Share] userActivation:', navigator.userActivation)
+
+      if (!zipBlob) {
+        setShareError('ZIP is still being prepared. Please wait a moment.')
+        return
+      }
+
+      if (!window.isSecureContext || typeof navigator.share !== 'function') {
+        console.log('[Share] no share API or insecure context — downloading')
+        downloadBlob(zipBlob, fileName)
+        return
+      }
+
+      // --- DIAGNOSTIC: try text-only share first (no files) ---
+      // If text-only works but files don't, it's a file-type issue.
+      // If text-only also fails, it's a transient activation issue.
+      navigator
+        .share({
+          title: 'Bangla Handwriting Dataset',
+          text: `${samples.length} handwriting samples collected via Bangla Handwriting Collector`,
+        })
+        .then(() => {
+          console.log('[Share] text-only share succeeded')
+        })
+        .catch((err: unknown) => {
+          const name = (err as { name?: string })?.name ?? ''
+          console.error('[Share] failed:', name, err)
+          if (name === 'AbortError') return
+          downloadBlob(zipBlob, fileName)
+          setShareError(`Share failed (${name}). Downloaded instead.`)
+        })
     }
 
-    if (!window.isSecureContext || typeof navigator.share !== 'function') {
-      downloadBlob(zipBlob, fileName)
-      return
-    }
-
-    const file = new File([zipBlob], fileName, { type: 'application/zip' })
-    const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
-    const title = 'Bangla Handwriting Dataset'
-
-    // Decide payload synchronously — NO canShare() call (may consume activation)
-    const shareData =
-      zipBlob.size <= MAX_SHARE_SIZE
-        ? { files: [file], title, text }
-        : { title, text }
-
-    const onFail = (err: unknown) => {
-      const name = (err as { name?: string })?.name ?? ''
-      if (name === 'AbortError') return // user cancelled — do nothing
-      console.error('[Share] navigator.share() failed:', err)
-      downloadBlob(zipBlob, fileName)
-      setShareError('Native share unavailable on this device — downloaded instead.')
-    }
-
-    try {
-      navigator.share(shareData).catch(onFail)
-    } catch (err) {
-      onFail(err)
-    }
+    btn.addEventListener('click', handleClick)
+    return () => btn.removeEventListener('click', handleClick)
   }, [zipBlob, fileName, samples.length])
 
   const toggleFormat = (f: ExportFormat) => {
@@ -357,7 +367,8 @@ export default function ExportView() {
               Download
             </motion.button>
             <button
-              onClick={handleShareClick}
+              ref={shareBtnRef}
+              type="button"
               disabled={exporting || formats.size === 0 || variants.size === 0}
               className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-700"
             >
