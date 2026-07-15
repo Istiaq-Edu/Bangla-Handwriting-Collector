@@ -100,12 +100,14 @@ export default function ExportView() {
   // React's event delegation was consuming transient activation, causing
   // NotAllowedError on navigator.share(). Native listener preserves the gesture.
   const shareBtnRef = useRef<HTMLButtonElement>(null)
+  const sharingRef = useRef(false)
 
   useEffect(() => {
     const btn = shareBtnRef.current
     if (!btn) return
 
     const handleClick = () => {
+      if (sharingRef.current) return
       if (!zipBlob) {
         setShareError('ZIP is still being prepared. Please wait a moment.')
         return
@@ -119,8 +121,6 @@ export default function ExportView() {
       const title = 'Bangla Handwriting Dataset'
       const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
 
-      // Use canShare() to decide payload — does NOT consume transient activation.
-      // Only call navigator.share() once (it consumes activation).
       const canShareFiles =
         zipBlob.size <= MAX_SHARE_SIZE &&
         typeof navigator.canShare === 'function' &&
@@ -130,7 +130,10 @@ export default function ExportView() {
         ? { files: [new File([zipBlob], fileName, { type: 'application/zip' })], title, text }
         : { title, text }
 
-      navigator.share(shareData).catch((err: unknown) => {
+      sharingRef.current = true
+      navigator.share(shareData).finally(() => {
+        sharingRef.current = false
+      }).catch((err: unknown) => {
         const name = (err as { name?: string })?.name ?? ''
         if (name === 'AbortError') return
         downloadBlob(zipBlob, fileName)
