@@ -96,10 +96,9 @@ export default function ExportView() {
     downloadBlob(blob, fileName)
   }, [zipBlob, generateZip, fileName])
 
-  // Use a ref + native event listener to bypass React's synthetic event system
-  // entirely. React's event delegation can sometimes interfere with transient
-  // activation on certain browsers. This also lets us log diagnostics at the
-  // exact moment of the click.
+  // Use a ref + native event listener to bypass React's synthetic event system.
+  // React's event delegation was consuming transient activation, causing
+  // NotAllowedError on navigator.share(). Native listener preserves the gesture.
   const shareBtnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -107,40 +106,36 @@ export default function ExportView() {
     if (!btn) return
 
     const handleClick = () => {
-      console.log('[Share] click fired')
-      console.log('[Share] isSecureContext:', window.isSecureContext)
-      console.log('[Share] navigator.share type:', typeof navigator.share)
-      console.log('[Share] userActivation:', navigator.userActivation)
-
       if (!zipBlob) {
         setShareError('ZIP is still being prepared. Please wait a moment.')
         return
       }
 
       if (!window.isSecureContext || typeof navigator.share !== 'function') {
-        console.log('[Share] no share API or insecure context — downloading')
         downloadBlob(zipBlob, fileName)
         return
       }
 
-      // --- DIAGNOSTIC: try text-only share first (no files) ---
-      // If text-only works but files don't, it's a file-type issue.
-      // If text-only also fails, it's a transient activation issue.
-      navigator
-        .share({
-          title: 'Bangla Handwriting Dataset',
-          text: `${samples.length} handwriting samples collected via Bangla Handwriting Collector`,
-        })
-        .then(() => {
-          console.log('[Share] text-only share succeeded')
-        })
-        .catch((err: unknown) => {
-          const name = (err as { name?: string })?.name ?? ''
-          console.error('[Share] failed:', name, err)
-          if (name === 'AbortError') return
-          downloadBlob(zipBlob, fileName)
-          setShareError(`Share failed (${name}). Downloaded instead.`)
-        })
+      const title = 'Bangla Handwriting Dataset'
+      const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
+
+      // Use canShare() to decide payload — does NOT consume transient activation.
+      // Only call navigator.share() once (it consumes activation).
+      const canShareFiles =
+        zipBlob.size <= MAX_SHARE_SIZE &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [new File([zipBlob], fileName, { type: 'application/zip' })] })
+
+      const shareData = canShareFiles
+        ? { files: [new File([zipBlob], fileName, { type: 'application/zip' })], title, text }
+        : { title, text }
+
+      navigator.share(shareData).catch((err: unknown) => {
+        const name = (err as { name?: string })?.name ?? ''
+        if (name === 'AbortError') return
+        downloadBlob(zipBlob, fileName)
+        setShareError(`Share failed (${name}). Downloaded instead.`)
+      })
     }
 
     btn.addEventListener('click', handleClick)
