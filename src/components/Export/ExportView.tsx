@@ -113,15 +113,19 @@ export default function ExportView() {
 
     const file = new File([zipBlob], fileName, { type: 'application/octet-stream' })
 
+    let canShare = false
     if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
       console.log('[Share] canShare=true, will share with files')
-      preparedShareData.current = { title, text, files: [file] }
-      setCanShareFiles(true)
+      canShare = true
     } else {
       console.log('[Share] canShare=false, will share text-only')
-      preparedShareData.current = { title, text }
-      setCanShareFiles(false)
     }
+    // TEMPORARY: force text-only to confirm files are the issue
+    canShare = false
+    preparedShareData.current = canShare
+      ? { title, text, files: [file] }
+      : { title, text }
+    setCanShareFiles(canShare)
   }, [zipBlob, fileName, samples.length])
 
   const handleDownload = useCallback(async () => {
@@ -157,11 +161,15 @@ export default function ExportView() {
         return
       }
 
+      // If we have files to share, try file share first.
+      // If file share fails with NotAllowedError, the activation is already consumed,
+      // so we can't retry with text-only. Just download.
       sharingRef.current = true
       navigator.share(data).finally(() => {
         sharingRef.current = false
       }).catch((err: unknown) => {
         const name = (err as { name?: string })?.name ?? ''
+        console.error('[Share] failed:', name, err)
         if (name === 'AbortError') return
         if (zipBlob) downloadBlob(zipBlob, fileName)
         setShareError(`Share failed (${name}). Downloaded instead.`)
