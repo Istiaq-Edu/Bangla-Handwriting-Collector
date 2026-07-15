@@ -96,18 +96,18 @@ export default function ExportView() {
     downloadBlob(blob, fileName)
   }, [zipBlob, generateZip, fileName])
 
-  // navigator.share() requires transient activation — must be called synchronously
-  // in the click handler. Use navigator.canShare() to pick the right payload upfront
-  // so there's only ONE share call (no async fallback that would lose the gesture).
-  // Plain <button> instead of motion.button avoids Framer Motion gesture interference.
+  // navigator.share() requires: secure context (HTTPS/localhost) + transient activation.
+  // ZIP files are NOT in the spec's shareable file types, so canShare() may reject them.
+  // Strategy: try native share first; if it fails for any non-abort reason, auto-download.
   const handleShareClick = useCallback(() => {
     if (!zipBlob) {
       setShareError('ZIP is still being prepared. Please wait a moment.')
       return
     }
 
-    if (typeof navigator.share !== 'function') {
-      setShareError('Web Share API is not available. Use Download instead.')
+    // No Web Share API or not in secure context — download directly
+    if (!window.isSecureContext || typeof navigator.share !== 'function') {
+      downloadBlob(zipBlob, fileName)
       return
     }
 
@@ -115,6 +115,7 @@ export default function ExportView() {
     const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
     const title = 'Bangla Handwriting Dataset'
 
+    // Only attempt file share if canShare() explicitly confirms it
     const canShareFiles =
       zipBlob.size <= MAX_SHARE_SIZE &&
       typeof navigator.canShare === 'function' &&
@@ -125,8 +126,12 @@ export default function ExportView() {
       : { title, text }
 
     navigator.share(shareData).catch((err: unknown) => {
+      // User cancelled the share sheet — do nothing
       if (err instanceof Error && err.name === 'AbortError') return
-      setShareError(`Sharing failed: ${err instanceof Error ? err.message : 'Unknown error'}. Use Download instead.`)
+
+      // Share denied or unsupported — fall back to download so the user still gets the file
+      downloadBlob(zipBlob, fileName)
+      setShareError('Native share unavailable on this device — downloaded instead.')
     })
   }, [zipBlob, fileName, samples.length])
 
