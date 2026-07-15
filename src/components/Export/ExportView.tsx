@@ -96,16 +96,17 @@ export default function ExportView() {
     downloadBlob(blob, fileName)
   }, [zipBlob, generateZip, fileName])
 
-  // navigator.share() requires: secure context (HTTPS/localhost) + transient activation.
-  // ZIP files are NOT in the spec's shareable file types, so canShare() may reject them.
-  // Strategy: try native share first; if it fails for any non-abort reason, auto-download.
+  // navigator.share() requires transient activation — called synchronously in the
+  // click handler with NO prior async work (canShare() may consume activation in
+  // some mobile browsers — a known bug). Plain <button> avoids Framer Motion
+  // gesture interference. try/catch + .catch() handles both sync throws and
+  // async rejections. DOMException is not always instanceof Error, so use duck typing.
   const handleShareClick = useCallback(() => {
     if (!zipBlob) {
       setShareError('ZIP is still being prepared. Please wait a moment.')
       return
     }
 
-    // No Web Share API or not in secure context — download directly
     if (!window.isSecureContext || typeof navigator.share !== 'function') {
       downloadBlob(zipBlob, fileName)
       return
@@ -115,24 +116,25 @@ export default function ExportView() {
     const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
     const title = 'Bangla Handwriting Dataset'
 
-    // Only attempt file share if canShare() explicitly confirms it
-    const canShareFiles =
-      zipBlob.size <= MAX_SHARE_SIZE &&
-      typeof navigator.canShare === 'function' &&
-      navigator.canShare({ files: [file] })
+    // Decide payload synchronously — NO canShare() call (may consume activation)
+    const shareData =
+      zipBlob.size <= MAX_SHARE_SIZE
+        ? { files: [file], title, text }
+        : { title, text }
 
-    const shareData = canShareFiles
-      ? { files: [file], title, text }
-      : { title, text }
-
-    navigator.share(shareData).catch((err: unknown) => {
-      // User cancelled the share sheet — do nothing
-      if (err instanceof Error && err.name === 'AbortError') return
-
-      // Share denied or unsupported — fall back to download so the user still gets the file
+    const onFail = (err: unknown) => {
+      const name = (err as { name?: string })?.name ?? ''
+      if (name === 'AbortError') return // user cancelled — do nothing
+      console.error('[Share] navigator.share() failed:', err)
       downloadBlob(zipBlob, fileName)
       setShareError('Native share unavailable on this device — downloaded instead.')
-    })
+    }
+
+    try {
+      navigator.share(shareData).catch(onFail)
+    } catch (err) {
+      onFail(err)
+    }
   }, [zipBlob, fileName, samples.length])
 
   const toggleFormat = (f: ExportFormat) => {
