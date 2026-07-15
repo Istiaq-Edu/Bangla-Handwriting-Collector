@@ -106,22 +106,9 @@ export default function ExportView() {
     // Download the ZIP immediately so the user has the file
     downloadBlob(blob, fileName)
 
-    // On mobile with native share, share the text description
-    if (typeof navigator.share === 'function' && window.isSecureContext) {
-      try {
-        await navigator.share({
-          title: 'Bangla Handwriting Dataset',
-          text: shareText,
-        })
-      } catch (err) {
-        const name = (err as { name?: string })?.name ?? ''
-        if (name === 'AbortError') return
-        setShowShareSheet(true)
-      }
-    } else {
-      setShowShareSheet(true)
-    }
-  }, [zipBlob, generateZip, fileName, shareText])
+    // Always show custom share sheet — browsers block ZIP files in Web Share API
+    setShowShareSheet(true)
+  }, [zipBlob, generateZip, fileName])
 
   const handleCopyText = useCallback(async () => {
     try {
