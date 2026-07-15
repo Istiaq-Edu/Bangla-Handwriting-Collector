@@ -96,46 +96,38 @@ export default function ExportView() {
     downloadBlob(blob, fileName)
   }, [zipBlob, generateZip, fileName])
 
-  // IMPORTANT: No await before navigator.share() — preserves user gesture context
-  const handleShareClick = useCallback(async () => {
+  // navigator.share() requires transient activation — must be called synchronously
+  // in the click handler. Use navigator.canShare() to pick the right payload upfront
+  // so there's only ONE share call (no async fallback that would lose the gesture).
+  // Plain <button> instead of motion.button avoids Framer Motion gesture interference.
+  const handleShareClick = useCallback(() => {
     if (!zipBlob) {
       setShareError('ZIP is still being prepared. Please wait a moment.')
       return
     }
-
-    const file = new File([zipBlob], fileName, { type: 'application/zip' })
 
     if (typeof navigator.share !== 'function') {
       setShareError('Web Share API is not available. Use Download instead.')
       return
     }
 
-    // Try file share first — skip canShare pre-check, just try it
-    if (zipBlob.size <= MAX_SHARE_SIZE) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: 'Bangla Handwriting Dataset',
-          text: `${samples.length} handwriting samples collected via Bangla Handwriting Collector`,
-        })
-        return
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return
-        // File share failed — fall through to text-only share
-      }
-    }
+    const file = new File([zipBlob], fileName, { type: 'application/zip' })
+    const text = `${samples.length} handwriting samples collected via Bangla Handwriting Collector`
+    const title = 'Bangla Handwriting Dataset'
 
-    // Fallback: text-only share (no files)
-    try {
-      await navigator.share({
-        title: 'Bangla Handwriting Dataset',
-        text: `I collected ${samples.length} Bangla handwriting samples. Download the ZIP from the app.`,
-      })
-      return
-    } catch (err) {
+    const canShareFiles =
+      zipBlob.size <= MAX_SHARE_SIZE &&
+      typeof navigator.canShare === 'function' &&
+      navigator.canShare({ files: [file] })
+
+    const shareData = canShareFiles
+      ? { files: [file], title, text }
+      : { title, text }
+
+    navigator.share(shareData).catch((err: unknown) => {
       if (err instanceof Error && err.name === 'AbortError') return
       setShareError(`Sharing failed: ${err instanceof Error ? err.message : 'Unknown error'}. Use Download instead.`)
-    }
+    })
   }, [zipBlob, fileName, samples.length])
 
   const toggleFormat = (f: ExportFormat) => {
@@ -357,16 +349,14 @@ export default function ExportView() {
               <Download size={18} strokeWidth={2} />
               Download
             </motion.button>
-            <motion.button
+            <button
               onClick={handleShareClick}
               disabled={exporting || formats.size === 0 || variants.size === 0}
-              className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-700"
-              whileHover={{ scale: exporting ? 1 : 1.02 }}
-              whileTap={{ scale: exporting ? 1 : 0.96 }}
+              className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-700"
             >
               <Share2 size={18} strokeWidth={2} />
               Share Dataset
-            </motion.button>
+            </button>
           </div>
         </div>
       </div>
