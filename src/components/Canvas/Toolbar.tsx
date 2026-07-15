@@ -222,7 +222,7 @@ export default function Toolbar({
       </div>
 
       {/* ═══ Mobile: horizontal bar ═══ */}
-      <div className="order-first flex items-center gap-1 overflow-x-auto overscroll-contain border-b border-slate-700 px-2 py-1.5 sm:hidden">
+      <div className="order-first flex items-center gap-1 overflow-x-auto border-b border-slate-700 px-2 py-1.5 sm:hidden">
         <ToolButton onClick={onUndo} disabled={!canUndo} label="Undo">
           <Undo2 size={16} strokeWidth={2} />
         </ToolButton>

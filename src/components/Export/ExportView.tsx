@@ -135,7 +135,7 @@ export default function ExportView() {
 
   return (
     <Layout>
-      <div className="h-full overflow-y-auto p-4 overscroll-contain">
+      <div className="h-full overflow-y-auto p-4">
         <div className="mx-auto max-w-md space-y-5 sm:max-w-lg md:max-w-xl">
           {/* Summary card */}
           <motion.div
@@ -255,6 +255,28 @@ export default function ExportView() {
             >
               <AlertCircle size={18} strokeWidth={2} className="shrink-0" />
               {shareError}
+            </motion.div>
+          )}
+
+          {/* Progress */}
+          {exporting && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-3"
+            >
+              <div className="mb-1 text-sm text-indigo-300">
+                {progress.label}
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-indigo-500/20">
+                <motion.div
+                  className="h-full rounded-full bg-indigo-600"
+                  animate={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
+                />
+              </div>
+              <div className="mt-1 text-xs text-indigo-400">
+                {progress.current} / {progress.total}
+              </div>
             </motion.div>
           )}
 

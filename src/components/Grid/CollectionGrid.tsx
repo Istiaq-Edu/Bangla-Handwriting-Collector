@@ -168,7 +168,7 @@ export default function CollectionGrid() {
             </motion.button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+          <div className="flex-1 overflow-y-auto p-4">
             {loadingSamples ? (
               <div className="flex h-full items-center justify-center text-slate-400">
                 Loading samples...
@@ -212,7 +212,7 @@ export default function CollectionGrid() {
   // ── Grid mode ──
   return (
     <Layout>
-      <div className="h-full overflow-y-auto p-4 overscroll-contain">
+      <div className="h-full overflow-y-auto p-4">
         <div className="mb-4 flex gap-2 overflow-x-auto">
           {FILTERS.map((f) => (
             <button

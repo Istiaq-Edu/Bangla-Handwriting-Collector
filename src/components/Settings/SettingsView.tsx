@@ -37,7 +37,7 @@ export default function SettingsView() {
 
   return (
     <Layout>
-      <div className="h-full overflow-y-auto overscroll-contain">
+      <div className="h-full overflow-y-auto">
         <div className="mx-auto max-w-md space-y-5 p-4 sm:max-w-lg md:max-w-xl">
           {/* Canvas */}
           <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
