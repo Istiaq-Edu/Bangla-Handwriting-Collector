@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Download, Share2, FileArchive, AlertCircle, Copy, Check,
+  Download, FileArchive, AlertCircle,
 } from 'lucide-react'
 import { Layout } from '../Layout'
 import { getAllSamples } from '../../db/database'
@@ -26,8 +26,6 @@ export default function ExportView() {
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' })
   const [zipBlob, setZipBlob] = useState<Blob | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
-  const [showShareSheet, setShowShareSheet] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   const [formats, setFormats] = useState<Set<ExportFormat>>(new Set(['folder-csv']))
   const [variants, setVariants] = useState<Set<ImageVariant>>(new Set(['raw']))
@@ -36,8 +34,6 @@ export default function ExportView() {
   const sessionId = useStore((s) => s.sessionId)
 
   const fileName = `bangla-handwriting-${new Date().toISOString().slice(0, 10)}-${sessionId.slice(0, 8)}.zip`
-
-  const shareText = `${samples.length} Bangla handwriting samples collected via Bangla Handwriting Collector`
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -95,46 +91,6 @@ export default function ExportView() {
     }
     downloadBlob(blob, fileName)
   }, [zipBlob, generateZip, fileName])
-
-  const handleShareClick = useCallback(async () => {
-    let blob = zipBlob
-    if (!blob) {
-      blob = await generateZip()
-      if (!blob) return
-    }
-
-    // Download the ZIP immediately so the user has the file
-    downloadBlob(blob, fileName)
-
-    // Always show custom share sheet — browsers block ZIP files in Web Share API
-    setShowShareSheet(true)
-  }, [zipBlob, generateZip, fileName])
-
-  const handleCopyText = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(shareText)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      setShareError('Failed to copy to clipboard.')
-    }
-  }, [shareText])
-
-  const handleWhatsAppShare = useCallback(() => {
-    const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
-    window.open(url, '_blank')
-  }, [shareText])
-
-  const handleTelegramShare = useCallback(() => {
-    const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(shareText)}`
-    window.open(url, '_blank')
-  }, [shareText])
-
-  const handleEmailShare = useCallback(() => {
-    const subject = encodeURIComponent('Bangla Handwriting Dataset')
-    const body = encodeURIComponent(`${shareText}\n\nThe ZIP file has been downloaded to your device.`)
-    window.location.href = `mailto:?subject=${subject}&body=${body}`
-  }, [shareText])
 
   const toggleFormat = (f: ExportFormat) => {
     setFormats((prev) => {
@@ -302,84 +258,6 @@ export default function ExportView() {
             </motion.div>
           )}
 
-          {/* Custom share sheet */}
-          {showShareSheet && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-200">
-                  ZIP downloaded! Share details:
-                </p>
-                <button
-                  onClick={() => setShowShareSheet(false)}
-                  className="text-slate-400 hover:text-slate-200"
-                >
-                  <AlertCircle size={16} />
-                </button>
-              </div>
-              <p className="text-xs text-slate-400">
-                The ZIP file has been saved to your device. Share the details below:
-              </p>
-
-              <div className="rounded-lg bg-slate-800/50 p-3 text-sm text-slate-300">
-                {shareText}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={handleCopyText}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-600 py-2.5 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-800/50"
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                  {copied ? 'Copied!' : 'Copy text'}
-                </button>
-                <button
-                  onClick={handleWhatsAppShare}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-green-600/50 py-2.5 text-xs font-medium text-green-400 transition-colors hover:bg-green-600/10"
-                >
-                  WhatsApp
-                </button>
-                <button
-                  onClick={handleTelegramShare}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-sky-600/50 py-2.5 text-xs font-medium text-sky-400 transition-colors hover:bg-sky-600/10"
-                >
-                  Telegram
-                </button>
-                <button
-                  onClick={handleEmailShare}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-600 py-2.5 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-800/50"
-                >
-                  Email
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Progress */}
-          {exporting && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-3"
-            >
-              <div className="mb-1 text-sm text-indigo-300">
-                {progress.label}
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-indigo-500/20">
-                <motion.div
-                  className="h-full rounded-full bg-indigo-600"
-                  animate={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
-                />
-              </div>
-              <div className="mt-1 text-xs text-indigo-400">
-                {progress.current} / {progress.total}
-              </div>
-            </motion.div>
-          )}
-
           {/* ZIP info */}
           {zipBlob && !exporting && (
             <motion.div
@@ -393,27 +271,17 @@ export default function ExportView() {
             </motion.div>
           )}
 
-          {/* Action buttons */}
-          <div className="flex gap-2 pb-4">
+          {/* Action button */}
+          <div className="pb-4">
             <motion.button
               onClick={handleDownload}
               disabled={exporting || formats.size === 0 || variants.size === 0}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-600 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800/50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-700"
               whileHover={{ scale: exporting ? 1 : 1.02 }}
               whileTap={{ scale: exporting ? 1 : 0.96 }}
             >
               <Download size={18} strokeWidth={2} />
               Download
-            </motion.button>
-            <motion.button
-              onClick={handleShareClick}
-              disabled={exporting || formats.size === 0 || variants.size === 0}
-              className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-700"
-              whileHover={{ scale: exporting ? 1 : 1.02 }}
-              whileTap={{ scale: exporting ? 1 : 0.96 }}
-            >
-              <Share2 size={18} strokeWidth={2} />
-              Share Dataset
             </motion.button>
           </div>
         </div>
